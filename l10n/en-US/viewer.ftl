@@ -48,6 +48,9 @@ pdfjs-save-button-label = Save
 pdfjs-render-theme-toggle-button =
     .title = Toggle dark theme
 pdfjs-render-theme-toggle-button-label = Dark theme
+pdfjs-render-theme-invert-images-toggle-button =
+    .title = Toggle image inversion for dark theme
+pdfjs-render-theme-invert-images-toggle-button-label = Invert images
 
 # Used in Firefox for Android as a tooltip for the download button (“download” is a verb).
 pdfjs-download-button =
