@@ -72,6 +72,7 @@ function getViewerConfiguration() {
         "editorSignatureParamsToolbar"
       ),
       download: document.getElementById("downloadButton"),
+      renderThemeToggle: document.getElementById("renderThemeToggle"),
     },
     secondaryToolbar: {
       toolbar: document.getElementById("secondaryToolbar"),

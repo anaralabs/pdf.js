@@ -44,6 +44,8 @@ class BasePDFPageView extends RenderableView {
 
   pageColors = null;
 
+  renderTheme = null;
+
   recordedBBoxes = null;
 
   renderingQueue = null;
@@ -53,6 +55,7 @@ class BasePDFPageView extends RenderableView {
     this.eventBus = options.eventBus;
     this.id = options.id;
     this.pageColors = options.pageColors || null;
+    this.renderTheme = options.renderTheme || null;
     this.renderingQueue = options.renderingQueue;
     this.enableOptimizedPartialRendering =
       options.enableOptimizedPartialRendering ?? false;

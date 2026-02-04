@@ -96,6 +96,8 @@ import { XfaLayerBuilder } from "./xfa_layer_builder.js";
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
+ * @property {Object} [renderTheme] - Apply a theme transform during rendering
+ *   (e.g. native dark mode) by mapping colors while keeping images intact.
  * @property {L10n} [l10n] - Localization service.
  * @property {Object} [layerProperties] - The object that is used to lookup
  *   the necessary layer-properties.
@@ -127,6 +129,11 @@ const LAYERS_ORDER = new Map([
   ["annotationEditorLayer", 3],
   ["xfaLayer", 3],
 ]);
+
+const DEFAULT_RENDER_THEME = {
+  background: "#121212",
+  foreground: "#E6E6E6",
+};
 
 class PDFPageView extends BasePDFPageView {
   #annotationMode = AnnotationMode.ENABLE_FORMS;
@@ -240,13 +247,7 @@ class PDFPageView extends BasePDFPageView {
         "--scale-factor",
         this.scale * PixelsPerInch.PDF_TO_CSS_UNITS
       );
-
-      if (this.pageColors?.background) {
-        container?.style.setProperty(
-          "--page-bg-color",
-          this.pageColors.background
-        );
-      }
+      this.#updateStandaloneThemeStyles();
 
       const { optionalContentConfigPromise } = options;
       if (optionalContentConfigPromise) {
@@ -268,6 +269,49 @@ class PDFPageView extends BasePDFPageView {
         this.l10n.translate(this.div);
       }
     }
+  }
+
+  #updateStandaloneThemeStyles() {
+    if (!this._isStandalone || !this._container) {
+      return;
+    }
+    const { pageColors, renderTheme } = this;
+    const container = this._container;
+
+    if (renderTheme) {
+      const background =
+        renderTheme.background || DEFAULT_RENDER_THEME.background;
+      const foreground =
+        renderTheme.foreground || DEFAULT_RENDER_THEME.foreground;
+
+      container.classList.add("renderTheme");
+      container.style.setProperty("--page-bg-color", background);
+      container.style.setProperty("--render-theme-background", background);
+      container.style.setProperty("--render-theme-foreground", foreground);
+      if (renderTheme.selection) {
+        container.style.setProperty(
+          "--render-theme-selection",
+          renderTheme.selection
+        );
+      } else {
+        container.style.removeProperty("--render-theme-selection");
+      }
+      return;
+    }
+
+    container.classList.remove("renderTheme");
+    if (pageColors?.background) {
+      container.style.setProperty("--page-bg-color", pageColors.background);
+      container.style.removeProperty("--render-theme-background");
+      container.style.removeProperty("--render-theme-foreground");
+      container.style.removeProperty("--render-theme-selection");
+      return;
+    }
+
+    container.style.removeProperty("--page-bg-color");
+    container.style.removeProperty("--render-theme-background");
+    container.style.removeProperty("--render-theme-foreground");
+    container.style.removeProperty("--render-theme-selection");
   }
 
   #addLayer(div, name) {
@@ -681,18 +725,23 @@ class PDFPageView extends BasePDFPageView {
    *   A promise that is resolved with an {@link OptionalContentConfig}
    *   instance. The default value is `null`.
    * @property {number} [drawingDelay]
+   * @property {Object|null} [renderTheme] - Theme transform for rendering.
    */
 
   /**
    * Update e.g. the scale and/or rotation of the page.
    * @param {PDFPageViewUpdateParameters} params
    */
-  update({
-    scale = 0,
-    rotation = null,
-    optionalContentConfigPromise = null,
-    drawingDelay = -1,
-  }) {
+  update(params = {}) {
+    const {
+      scale = 0,
+      rotation = null,
+      optionalContentConfigPromise = null,
+      drawingDelay = -1,
+    } = params;
+    if ("renderTheme" in params) {
+      this.renderTheme = params.renderTheme || null;
+    }
     this.scale = scale || this.scale;
     if (typeof rotation === "number") {
       this.rotation = rotation; // The rotation may be zero.
@@ -720,6 +769,7 @@ class PDFPageView extends BasePDFPageView {
       rotation: totalRotation,
     });
     this.#setDimensions();
+    this.#updateStandaloneThemeStyles();
 
     if (
       (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) &&
@@ -959,6 +1009,7 @@ class PDFPageView extends BasePDFPageView {
       optionalContentConfigPromise: this._optionalContentConfigPromise,
       annotationCanvasMap: this._annotationCanvasMap,
       pageColors: this.pageColors,
+      renderTheme: this.renderTheme,
       isEditing: this.#isEditing,
       recordOperations,
     };

@@ -68,6 +68,10 @@ import { RenderingStates } from "./renderable_view.js";
 import { SimpleLinkService } from "./pdf_link_service.js";
 
 const DEFAULT_CACHE_SIZE = 10;
+const DEFAULT_RENDER_THEME = {
+  background: "#121212",
+  foreground: "#E6E6E6",
+};
 
 const PagesCountLimit = {
   FORCE_SCROLL_MODE_PAGE: 10000,
@@ -138,6 +142,8 @@ function isValidAnnotationEditorMode(mode) {
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
+ * @property {Object} [renderTheme] - Apply a theme transform during rendering
+ *   (e.g. native dark mode) by mapping colors while keeping images intact.
  * @property {boolean} [enableHWA] - Enables hardware acceleration for
  *   rendering. The default value is `false`.
  * @property {boolean} [supportsPinchToZoom] - Enable zooming on pinch gesture.
@@ -364,6 +370,7 @@ class PDFViewer {
     }
     this.#enablePermissions = options.enablePermissions || false;
     this.pageColors = options.pageColors || null;
+    this.renderTheme = options.renderTheme || null;
     this.#mlManager = options.mlManager || null;
     this.#enableHWA = options.enableHWA || false;
     this.#supportsPinchToZoom = options.supportsPinchToZoom !== false;
@@ -897,7 +904,7 @@ class PDFViewer {
       ? pdfDocument.getPermissions()
       : Promise.resolve();
 
-    const { eventBus, pageColors, viewer } = this;
+    const { eventBus, pageColors, renderTheme, viewer } = this;
 
     this.#eventAbortController = new AbortController();
     const { signal } = this.#eventAbortController;
@@ -1009,9 +1016,7 @@ class PDFViewer {
         // see issue 15795.
         viewer.style.setProperty("--scale-factor", viewport.scale);
 
-        if (pageColors?.background) {
-          viewer.style.setProperty("--page-bg-color", pageColors.background);
-        }
+        this.#updateViewerThemeStyles();
         if (
           pageColors?.foreground === "CanvasText" ||
           pageColors?.background === "Canvas"
@@ -1057,6 +1062,7 @@ class PDFViewer {
             enableOptimizedPartialRendering:
               this.enableOptimizedPartialRendering,
             pageColors,
+            renderTheme,
             l10n: this.l10n,
             layerProperties: this._layerProperties,
             enableHWA: this.#enableHWA,
@@ -1210,6 +1216,40 @@ class PDFViewer {
     setTimeout(() => {
       this.forceRendering();
     });
+  }
+
+  setRenderTheme(renderTheme) {
+    this.renderTheme = renderTheme || null;
+    this.#updateViewerThemeStyles();
+
+    if (!this.pdfDocument) {
+      return;
+    }
+
+    let needsUpdate = false;
+    for (const pageView of this._pages) {
+      pageView.renderTheme = this.renderTheme;
+
+      if (!pageView.canvas) {
+        continue;
+      }
+      pageView.reset({
+        keepAnnotationLayer: true,
+        keepAnnotationEditorLayer: true,
+        keepXfaLayer: true,
+        keepTextLayer: true,
+        keepCanvasWrapper: false,
+        preserveDetailViewState: true,
+      });
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      const visible = this._getVisiblePages();
+      if (visible.views.length) {
+        this.renderingQueue.renderHighestPriority(visible);
+      }
+    }
   }
 
   /**
@@ -2603,6 +2643,44 @@ class PDFViewer {
       }
     }
     updater();
+  }
+
+  #updateViewerThemeStyles() {
+    const { pageColors, renderTheme, viewer } = this;
+    if (!viewer) {
+      return;
+    }
+    if (renderTheme) {
+      const background =
+        renderTheme.background || DEFAULT_RENDER_THEME.background;
+      const foreground =
+        renderTheme.foreground || DEFAULT_RENDER_THEME.foreground;
+
+      viewer.classList.add("renderTheme");
+      viewer.style.setProperty("--page-bg-color", background);
+      viewer.style.setProperty("--render-theme-background", background);
+      viewer.style.setProperty("--render-theme-foreground", foreground);
+      if (renderTheme.selection) {
+        viewer.style.setProperty(
+          "--render-theme-selection",
+          renderTheme.selection
+        );
+      } else {
+        viewer.style.removeProperty("--render-theme-selection");
+      }
+    } else if (pageColors?.background) {
+      viewer.classList.remove("renderTheme");
+      viewer.style.setProperty("--page-bg-color", pageColors.background);
+      viewer.style.removeProperty("--render-theme-background");
+      viewer.style.removeProperty("--render-theme-foreground");
+      viewer.style.removeProperty("--render-theme-selection");
+    } else {
+      viewer.classList.remove("renderTheme");
+      viewer.style.removeProperty("--page-bg-color");
+      viewer.style.removeProperty("--render-theme-background");
+      viewer.style.removeProperty("--render-theme-foreground");
+      viewer.style.removeProperty("--render-theme-selection");
+    }
   }
 
   refresh(noUpdate = false, updateArgs = Object.create(null)) {

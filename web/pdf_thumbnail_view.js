@@ -53,6 +53,8 @@ const THUMBNAIL_WIDTH = 126; // px
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
+ * @property {Object} [renderTheme] - Apply a theme transform during rendering
+ *   (e.g. native dark mode) by mapping colors while keeping images intact.
  */
 
 class TempImageFactory {
@@ -94,6 +96,7 @@ class PDFThumbnailView extends RenderableView {
     maxCanvasPixels,
     maxCanvasDim,
     pageColors,
+    renderTheme,
     enableSplitMerge = false,
   }) {
     super();
@@ -109,6 +112,7 @@ class PDFThumbnailView extends RenderableView {
     this.maxCanvasPixels = maxCanvasPixels ?? AppOptions.get("maxCanvasPixels");
     this.maxCanvasDim = maxCanvasDim || AppOptions.get("maxCanvasDim");
     this.pageColors = pageColors || null;
+    this.renderTheme = renderTheme || null;
 
     this.eventBus = eventBus;
     this.linkService = linkService;
@@ -190,7 +194,11 @@ class PDFThumbnailView extends RenderableView {
     }
   }
 
-  update({ rotation = null }) {
+  update(params = {}) {
+    const { rotation = null } = params;
+    if ("renderTheme" in params) {
+      this.renderTheme = params.renderTheme || null;
+    }
     if (typeof rotation === "number") {
       this.rotation = rotation; // The rotation may be zero.
     }
@@ -274,7 +282,7 @@ class PDFThumbnailView extends RenderableView {
       console.error("Must be in new state before drawing");
       return;
     }
-    const { pageColors, pdfPage } = this;
+    const { pageColors, renderTheme, pdfPage } = this;
 
     if (!pdfPage) {
       this.renderingState = RenderingStates.FINISHED;
@@ -310,6 +318,7 @@ class PDFThumbnailView extends RenderableView {
       viewport: drawViewport,
       optionalContentConfigPromise: this._optionalContentConfigPromise,
       pageColors,
+      renderTheme,
     };
     const renderTask = (this.renderTask = pdfPage.render(renderContext));
     renderTask.onContinue = renderContinueCallback;

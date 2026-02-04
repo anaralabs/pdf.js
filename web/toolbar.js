@@ -41,6 +41,8 @@ import {
  * @property {HTMLButtonElement} editorFreeTextButton - Button to switch to
  *   FreeText editing.
  * @property {HTMLButtonElement} download - Button to download the document.
+ * @property {HTMLButtonElement} renderThemeToggle - Button to toggle render
+ *   theme (e.g. native dark mode).
  */
 
 class Toolbar {
@@ -67,6 +69,7 @@ class Toolbar {
       { element: options.zoomOut, eventName: "zoomout" },
       { element: options.print, eventName: "print" },
       { element: options.download, eventName: "download" },
+      { element: options.renderThemeToggle, eventName: "rendertheme" },
       {
         element: options.editorCommentButton,
         eventName: "switchannotationeditormode",
@@ -274,6 +277,14 @@ class Toolbar {
       }
     });
     eventBus._on("toolbardensity", this.#updateToolbarDensity.bind(this));
+    eventBus._on("renderthemechanged", ({ enabled }) => {
+      const { renderThemeToggle } = this.#opts;
+      if (!renderThemeToggle) {
+        return;
+      }
+      renderThemeToggle.classList.toggle("toggled", enabled);
+      renderThemeToggle.setAttribute("aria-pressed", enabled);
+    });
 
     if (editorHighlightColorPicker) {
       eventBus._on("annotationeditoruimanager", ({ uiManager }) => {

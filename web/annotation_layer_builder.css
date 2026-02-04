@@ -405,3 +405,50 @@
     z-index: -1;
   }
 }
+
+.pdfViewer.renderTheme .annotationLayer,
+.renderTheme .annotationLayer {
+  color-scheme: only dark;
+
+  --annotation-unfocused-field-background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--render-theme-selection, #2B5D9A) 18%, transparent),
+    color-mix(in srgb, var(--render-theme-selection, #2B5D9A) 18%, transparent)
+  );
+  --input-focus-border-color: var(--render-theme-selection, #2B5D9A);
+  --input-unfocused-border-color: color-mix(
+    in srgb,
+    var(--render-theme-foreground, #E6E6E6) 30%,
+    transparent
+  );
+  --input-disabled-border-color: color-mix(
+    in srgb,
+    var(--render-theme-foreground, #E6E6E6) 15%,
+    transparent
+  );
+  --input-hover-border-color: var(--render-theme-foreground, #E6E6E6);
+}
+
+.pdfViewer.renderTheme
+  .annotationLayer
+  :is(.linkAnnotation, .buttonWidgetAnnotation.pushButton):not(.hasBorder)
+  > a:hover,
+.renderTheme
+  .annotationLayer
+  :is(.linkAnnotation, .buttonWidgetAnnotation.pushButton):not(.hasBorder)
+  > a:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--render-theme-selection, #2B5D9A) 35%,
+    transparent
+  );
+}
+
+.pdfViewer.renderTheme .annotationLayer .linkAnnotation.hasBorder:hover,
+.renderTheme .annotationLayer .linkAnnotation.hasBorder:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--render-theme-selection, #2B5D9A) 25%,
+    transparent
+  );
+}
