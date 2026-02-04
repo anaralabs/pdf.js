@@ -1250,6 +1250,8 @@ class PDFDocumentProxy {
  * @property {string} [renderTheme.background] - Theme background color.
  * @property {string} [renderTheme.foreground] - Theme foreground color.
  * @property {string} [renderTheme.selection] - Theme selection/highlight color.
+ * @property {boolean} [invertImages] - Invert colors for all images during
+ *   rendering. Useful for dark mode in image-heavy documents.
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
@@ -1292,6 +1294,8 @@ class PDFDocumentProxy {
  *      (as above) but where interactive form elements are updated with data
  *      from the {@link AnnotationStorage}-instance; useful e.g. for printing.
  *   The default value is `AnnotationMode.ENABLE`.
+ * @property {boolean} [invertImages] - Invert colors for all images during
+ *   operator list generation.
  * @property {PrintAnnotationStorage} [printAnnotationStorage]
  * @property {boolean} [isEditing] - Render the page in editing mode.
  */
@@ -1472,6 +1476,7 @@ class PDFPageProxy {
     transform = null,
     background = null,
     renderTheme = null,
+    invertImages = renderTheme?.invertImages ?? false,
     optionalContentConfigPromise = null,
     annotationCanvasMap = null,
     pageColors = null,
@@ -1482,11 +1487,16 @@ class PDFPageProxy {
   }) {
     this._stats?.time("Overall");
 
+    const shouldInvertImages = invertImages === true;
+    const inversionPromise =
+      this._transport.ensureImageInversion?.(shouldInvertImages) || null;
     const intentArgs = this._transport.getRenderingIntent(
       intent,
       annotationMode,
       printAnnotationStorage,
-      isEditing
+      isEditing,
+      /* isOpList = */ false,
+      shouldInvertImages
     );
     const { renderingIntent, cacheKey } = intentArgs;
     // If there was a pending destroy, cancel it so no cleanup happens during
@@ -1522,7 +1532,7 @@ class PDFPageProxy {
       };
 
       this._stats?.time("Page Request");
-      this._pumpOperatorList(intentArgs);
+      this._pumpOperatorList({ ...intentArgs, inversionPromise });
     }
 
     const recordForDebugger = Boolean(
@@ -1652,11 +1662,14 @@ class PDFPageProxy {
     intent = "display",
     annotationMode = AnnotationMode.ENABLE,
     printAnnotationStorage = null,
+    invertImages = false,
     isEditing = false,
   } = {}) {
     if (typeof PDFJSDev !== "undefined" && !PDFJSDev.test("GENERIC")) {
       throw new Error("Not implemented: getOperatorList");
     }
+    const inversionPromise =
+      this._transport.ensureImageInversion?.(invertImages === true) || null;
     function operatorListChanged() {
       if (intentState.operatorList.lastChunk) {
         intentState.opListReadCapability.resolve(intentState.operatorList);
@@ -1670,7 +1683,8 @@ class PDFPageProxy {
       annotationMode,
       printAnnotationStorage,
       isEditing,
-      /* isOpList = */ true
+      /* isOpList = */ true,
+      invertImages === true
     );
     let intentState = this._intentStates.get(intentArgs.cacheKey);
     if (!intentState) {
@@ -1692,7 +1706,7 @@ class PDFPageProxy {
       };
 
       this._stats?.time("Page Request");
-      this._pumpOperatorList(intentArgs);
+      this._pumpOperatorList({ ...intentArgs, inversionPromise });
     }
     return intentState.opListReadCapability.promise;
   }
@@ -1887,6 +1901,8 @@ class PDFPageProxy {
     cacheKey,
     annotationStorageSerializable,
     modifiedIds,
+    invertImages,
+    inversionPromise = null,
   }) {
     if (typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING")) {
       assert(
@@ -1896,63 +1912,75 @@ class PDFPageProxy {
     }
     const { map, transfer } = annotationStorageSerializable;
 
-    const readableStream = this._transport.messageHandler.sendWithStream(
-      "GetOperatorList",
-      {
-        pageId: this.#pagesMapper.getPageId(this._pageIndex + 1) - 1,
-        pageIndex: this._pageIndex,
-        intent: renderingIntent,
-        cacheKey,
-        annotationStorage: map,
-        modifiedIds,
-      },
-      transfer
-    );
-    const reader = readableStream.getReader();
-
-    const intentState = this._intentStates.get(cacheKey);
-    intentState.streamReader = reader;
-
-    const pump = () => {
-      reader.read().then(
-        ({ value, done }) => {
-          if (done) {
-            intentState.streamReader = null;
-            return;
-          }
-          if (this._transport.destroyed) {
-            return; // Ignore any pending requests if the worker was terminated.
-          }
-          this._renderPageChunk(value, intentState);
-          pump();
+    const startPump = () => {
+      const readableStream = this._transport.messageHandler.sendWithStream(
+        "GetOperatorList",
+        {
+          pageId: this.#pagesMapper.getPageId(this._pageIndex + 1) - 1,
+          pageIndex: this._pageIndex,
+          intent: renderingIntent,
+          cacheKey,
+          annotationStorage: map,
+          modifiedIds,
+          invertImages: invertImages === true,
         },
-        reason => {
-          intentState.streamReader = null;
-
-          if (this._transport.destroyed) {
-            return; // Ignore any pending requests if the worker was terminated.
-          }
-          if (intentState.operatorList) {
-            // Mark operator list as complete.
-            intentState.operatorList.lastChunk = true;
-
-            for (const internalRenderTask of intentState.renderTasks) {
-              internalRenderTask.operatorListChanged();
-            }
-            this.#tryCleanup();
-          }
-
-          if (intentState.displayReadyCapability) {
-            intentState.displayReadyCapability.reject(reason);
-          } else if (intentState.opListReadCapability) {
-            intentState.opListReadCapability.reject(reason);
-          } else {
-            throw reason;
-          }
-        }
+        transfer
       );
+      const reader = readableStream.getReader();
+
+      const intentState = this._intentStates.get(cacheKey);
+      intentState.streamReader = reader;
+
+      const pump = () => {
+        reader.read().then(
+          ({ value, done }) => {
+            if (done) {
+              intentState.streamReader = null;
+              return;
+            }
+            if (this._transport.destroyed) {
+              return; // Ignore any pending requests if the worker was terminated.
+            }
+            this._renderPageChunk(value, intentState);
+            pump();
+          },
+          reason => {
+            intentState.streamReader = null;
+
+            if (this._transport.destroyed) {
+              return; // Ignore any pending requests if the worker was terminated.
+            }
+            if (intentState.operatorList) {
+              // Mark operator list as complete.
+              intentState.operatorList.lastChunk = true;
+
+              for (const internalRenderTask of intentState.renderTasks) {
+                internalRenderTask.operatorListChanged();
+              }
+              this.#tryCleanup();
+            }
+
+            if (intentState.displayReadyCapability) {
+              intentState.displayReadyCapability.reject(reason);
+            } else if (intentState.opListReadCapability) {
+              intentState.opListReadCapability.reject(reason);
+            } else {
+              throw reason;
+            }
+          }
+        );
+      };
+      pump();
     };
-    pump();
+
+    if (inversionPromise) {
+      inversionPromise.then(startPump, reason => {
+        warn(`_pumpOperatorList: Failed to clear image caches: ${reason}`);
+        startPump();
+      });
+    } else {
+      startPump();
+    }
   }
 
   /**
@@ -2399,6 +2427,10 @@ class WorkerTransport {
 
   #fullReader = null;
 
+  #imageInversion = null;
+
+  #imageInversionPromise = null;
+
   #methodPromises = new Map();
 
   #networkStream = null;
@@ -2501,6 +2533,70 @@ class WorkerTransport {
     });
   }
 
+  #isImageData(data) {
+    return (
+      data &&
+      typeof data === "object" &&
+      typeof data.width === "number" &&
+      typeof data.height === "number" &&
+      (typeof data.dataLen === "number" || data.bitmap || data.data)
+    );
+  }
+
+  ensureImageInversion(invertImages = false) {
+    const normalized = invertImages === true;
+    if (this.#imageInversion === null) {
+      this.#imageInversion = normalized;
+      return null;
+    }
+    if (this.#imageInversion === normalized) {
+      return this.#imageInversionPromise;
+    }
+    this.#imageInversion = normalized;
+    const promise = this.clearImageCaches();
+    this.#imageInversionPromise = promise.finally(() => {
+      if (this.#imageInversionPromise === promise) {
+        this.#imageInversionPromise = null;
+      }
+    });
+    return this.#imageInversionPromise;
+  }
+
+  async clearImageCaches() {
+    if (this.destroyed) {
+      return;
+    }
+    const cancelReason = new RenderingCancelledException(
+      "Image caches cleared.",
+      0
+    );
+    for (const page of this.#pageCache.values()) {
+      for (const intentState of page._intentStates.values()) {
+        const { renderTasks, operatorList } = intentState;
+        if (renderTasks?.size) {
+          for (const internalRenderTask of renderTasks) {
+            internalRenderTask.cancel(cancelReason);
+          }
+        }
+        if (!operatorList?.lastChunk) {
+          page._abortOperatorList({
+            intentState,
+            reason: cancelReason,
+            force: true,
+          });
+        }
+      }
+      page._intentStates.clear();
+      page.objs.clear(data => this.#isImageData(data));
+    }
+    this.commonObjs.clear(data => this.#isImageData(data));
+    try {
+      await this.messageHandler.sendWithPromise("ClearImageCaches", null);
+    } catch (reason) {
+      warn(`clearImageCaches: "${reason}".`);
+    }
+  }
+
   get annotationStorage() {
     return shadow(this, "annotationStorage", new AnnotationStorage());
   }
@@ -2510,7 +2606,8 @@ class WorkerTransport {
     annotationMode = AnnotationMode.ENABLE,
     printAnnotationStorage = null,
     isEditing = false,
-    isOpList = false
+    isOpList = false,
+    invertImages = false
   ) {
     let renderingIntent = RenderingIntentFlag.DISPLAY; // Default value.
     let annotationStorageSerializable = SerializableEmpty;
@@ -2566,6 +2663,7 @@ class WorkerTransport {
       renderingIntent,
       annotationStorageSerializable.hash,
       modifiedIdsHash,
+      invertImages === true ? 1 : 0,
     ];
 
     return {
@@ -2573,6 +2671,7 @@ class WorkerTransport {
       cacheKey: cacheKeyBuf.join("_"),
       annotationStorageSerializable,
       modifiedIds,
+      invertImages: invertImages === true,
     };
   }
 
