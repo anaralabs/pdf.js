@@ -43,6 +43,8 @@ import {
  * @property {HTMLButtonElement} download - Button to download the document.
  * @property {HTMLButtonElement} renderThemeToggle - Button to toggle render
  *   theme (e.g. native dark mode).
+ * @property {HTMLButtonElement} renderThemeInvertImagesToggle - Button to
+ *   toggle image inversion for render theme.
  */
 
 class Toolbar {
@@ -70,6 +72,10 @@ class Toolbar {
       { element: options.print, eventName: "print" },
       { element: options.download, eventName: "download" },
       { element: options.renderThemeToggle, eventName: "rendertheme" },
+      {
+        element: options.renderThemeInvertImagesToggle,
+        eventName: "renderthemeinvertimages",
+      },
       {
         element: options.editorCommentButton,
         eventName: "switchannotationeditormode",
@@ -284,6 +290,15 @@ class Toolbar {
       }
       renderThemeToggle.classList.toggle("toggled", enabled);
       renderThemeToggle.setAttribute("aria-pressed", enabled);
+    });
+    eventBus._on("renderthemeinvertimageschanged", ({ enabled, available }) => {
+      const { renderThemeInvertImagesToggle } = this.#opts;
+      if (!renderThemeInvertImagesToggle) {
+        return;
+      }
+      renderThemeInvertImagesToggle.classList.toggle("toggled", enabled);
+      renderThemeInvertImagesToggle.setAttribute("aria-pressed", enabled);
+      renderThemeInvertImagesToggle.disabled = !available;
     });
 
     if (editorHighlightColorPicker) {

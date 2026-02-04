@@ -55,6 +55,7 @@ const THUMBNAIL_WIDTH = 126; // px
  *   mode.
  * @property {Object} [renderTheme] - Apply a theme transform during rendering
  *   (e.g. native dark mode) by mapping colors while keeping images intact.
+ *   Set `renderTheme.invertImages` to invert image colors during rendering.
  */
 
 class TempImageFactory {
@@ -319,6 +320,7 @@ class PDFThumbnailView extends RenderableView {
       optionalContentConfigPromise: this._optionalContentConfigPromise,
       pageColors,
       renderTheme,
+      invertImages: renderTheme?.invertImages,
     };
     const renderTask = (this.renderTask = pdfPage.render(renderContext));
     renderTask.onContinue = renderContinueCallback;

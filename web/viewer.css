@@ -101,6 +101,7 @@
   /*#endif*/
   --toolbarButton-download-icon: url(images/toolbarButton-download.svg);
   --toolbarButton-renderTheme-icon: url(images/toolbarButton-renderTheme.svg);
+  --toolbarButton-renderThemeInvertImages-icon: url(images/toolbarButton-renderThemeInvertImages.svg);
   --toolbarButton-bookmark-icon: url(images/toolbarButton-bookmark.svg);
   --toolbarButton-viewThumbnail-icon: url(images/toolbarButton-viewThumbnail.svg);
   --toolbarButton-viewOutline-icon: url(images/toolbarButton-viewOutline.svg);
@@ -500,6 +501,10 @@ body {
 
 #renderThemeToggle::before {
   mask-image: var(--toolbarButton-renderTheme-icon);
+}
+
+#renderThemeInvertImagesToggle::before {
+  mask-image: var(--toolbarButton-renderThemeInvertImages-icon);
 }
 
 #currentOutlineItem::before {

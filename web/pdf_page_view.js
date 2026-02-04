@@ -98,6 +98,7 @@ import { XfaLayerBuilder } from "./xfa_layer_builder.js";
  *   mode.
  * @property {Object} [renderTheme] - Apply a theme transform during rendering
  *   (e.g. native dark mode) by mapping colors while keeping images intact.
+ *   Set `renderTheme.invertImages` to invert image colors during rendering.
  * @property {L10n} [l10n] - Localization service.
  * @property {Object} [layerProperties] - The object that is used to lookup
  *   the necessary layer-properties.
@@ -1010,6 +1011,7 @@ class PDFPageView extends BasePDFPageView {
       annotationCanvasMap: this._annotationCanvasMap,
       pageColors: this.pageColors,
       renderTheme: this.renderTheme,
+      invertImages: this.renderTheme?.invertImages,
       isEditing: this.#isEditing,
       recordOperations,
     };

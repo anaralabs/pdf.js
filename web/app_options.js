@@ -355,17 +355,22 @@ const defaultOptions = {
   },
   renderThemeBackground: {
     /** @type {string} */
-    value: "#121212",
+    value: "#171717",
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   renderThemeForeground: {
     /** @type {string} */
-    value: "#E6E6E6",
+    value: "#E8E8E8",
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   renderThemeSelection: {
     /** @type {string} */
     value: "#2B5D9A",
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  renderThemeInvertImages: {
+    /** @type {boolean} */
+    value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   pdfBugEnabled: {

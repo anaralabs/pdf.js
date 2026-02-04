@@ -73,6 +73,9 @@ function getViewerConfiguration() {
       ),
       download: document.getElementById("downloadButton"),
       renderThemeToggle: document.getElementById("renderThemeToggle"),
+      renderThemeInvertImagesToggle: document.getElementById(
+        "renderThemeInvertImagesToggle"
+      ),
     },
     secondaryToolbar: {
       toolbar: document.getElementById("secondaryToolbar"),
