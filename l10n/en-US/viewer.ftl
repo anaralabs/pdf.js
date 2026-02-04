@@ -45,6 +45,9 @@ pdfjs-print-button-label = Print
 pdfjs-save-button =
     .title = Save
 pdfjs-save-button-label = Save
+pdfjs-render-theme-toggle-button =
+    .title = Toggle dark theme
+pdfjs-render-theme-toggle-button-label = Dark theme
 
 # Used in Firefox for Android as a tooltip for the download button (“download” is a verb).
 pdfjs-download-button =
