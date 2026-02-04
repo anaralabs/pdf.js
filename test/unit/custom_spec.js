@@ -14,7 +14,11 @@
  */
 
 import { buildGetDocumentParams } from "./test_utils.js";
+import { CanvasGraphics } from "../../src/display/canvas.js";
+import { DOMCanvasFactory } from "../../src/display/canvas_factory.js";
 import { getDocument } from "../../src/display/api.js";
+import { isNodeJS } from "../../src/shared/util.js";
+import { PDFObjects } from "../../src/display/pdf_objects.js";
 
 function getTopLeftPixel(canvasContext) {
   const imgData = canvasContext.getImageData(0, 0, 1, 1);
@@ -24,6 +28,24 @@ function getTopLeftPixel(canvasContext) {
     b: imgData.data[2],
     a: imgData.data[3],
   };
+}
+
+function createThemedGraphics(renderTheme) {
+  const canvasFactory = new DOMCanvasFactory({});
+  const canvasAndCtx = canvasFactory.create(1, 1);
+  const gfx = new CanvasGraphics(
+    canvasAndCtx.context,
+    new PDFObjects(),
+    new PDFObjects(),
+    canvasFactory,
+    null,
+    { optionalContentConfig: null, markedContentStack: null },
+    null,
+    null,
+    renderTheme,
+    null
+  );
+  return { gfx, canvasFactory, canvasAndCtx };
 }
 
 describe("custom canvas rendering", function () {
@@ -82,6 +104,76 @@ describe("custom canvas rendering", function () {
       b: 0,
       a: 255,
     });
+    canvasFactory.destroy(canvasAndCtx);
+  });
+
+  it("renders to canvas with a render theme background", async function () {
+    const viewport = page.getViewport({ scale: 1 });
+    const { canvasFactory } = doc;
+    const canvasAndCtx = canvasFactory.create(viewport.width, viewport.height);
+
+    const renderTask = page.render({
+      canvas: canvasAndCtx.canvas,
+      viewport,
+      renderTheme: {
+        background: "rgba(0, 0, 0, 0.3)",
+        foreground: "#ffffff",
+      },
+    });
+    await renderTask.promise;
+
+    expect(getTopLeftPixel(canvasAndCtx.context)).toEqual({
+      r: 0,
+      g: 0,
+      b: 0,
+      a: 255,
+    });
+    canvasFactory.destroy(canvasAndCtx);
+  });
+});
+
+describe("render theme helpers", function () {
+  it("maps colors for a dark render theme", function () {
+    if (isNodeJS) {
+      pending("Document is not supported in Node.js.");
+    }
+    const { gfx, canvasFactory, canvasAndCtx } = createThemedGraphics({
+      background: "#000000",
+      foreground: "#ffffff",
+    });
+
+    expect(gfx.getThemedColor("#000000")).toEqual("#ffffff");
+    expect(gfx.getThemedColor("#ffffff")).toEqual("#000000");
+
+    canvasFactory.destroy(canvasAndCtx);
+  });
+
+  it("clamps render theme channels to valid RGB ranges", function () {
+    if (isNodeJS) {
+      pending("Document is not supported in Node.js.");
+    }
+    const { gfx, canvasFactory, canvasAndCtx } = createThemedGraphics({
+      background: "rgb(300, -20, 260)",
+      foreground: "rgb(0, 0, 0)",
+    });
+
+    expect(gfx.getRenderThemeKey()).toEqual("#ff00ff-#000000");
+
+    canvasFactory.destroy(canvasAndCtx);
+  });
+
+  it("keeps transparent colors unthemed", function () {
+    if (isNodeJS) {
+      pending("Document is not supported in Node.js.");
+    }
+    const { gfx, canvasFactory, canvasAndCtx } = createThemedGraphics({
+      background: "#000000",
+      foreground: "#ffffff",
+    });
+    const transparentColor = "rgba(10, 20, 30, 0.5)";
+
+    expect(gfx.getThemedColor(transparentColor)).toEqual(transparentColor);
+
     canvasFactory.destroy(canvasAndCtx);
   });
 });
