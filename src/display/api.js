@@ -1244,6 +1244,11 @@ class PDFDocumentProxy {
  *
  *   NOTE: This option may be partially, or completely, ignored when the
  *   `pageColors`-option is used.
+ * @property {Object} [renderTheme] - Apply a theme transform during rendering
+ *   (e.g. native dark mode) by mapping colors while keeping images intact.
+ * @property {string} [renderTheme.background] - Theme background color.
+ * @property {string} [renderTheme.foreground] - Theme foreground color.
+ * @property {string} [renderTheme.selection] - Theme selection/highlight color.
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
@@ -1465,6 +1470,7 @@ class PDFPageProxy {
     annotationMode = AnnotationMode.ENABLE,
     transform = null,
     background = null,
+    renderTheme = null,
     optionalContentConfigPromise = null,
     annotationCanvasMap = null,
     pageColors = null,
@@ -1587,6 +1593,7 @@ class PDFPageProxy {
         viewport,
         transform,
         background,
+        renderTheme,
       },
       objs: this.objs,
       commonObjs: this.commonObjs,
@@ -1598,6 +1605,7 @@ class PDFPageProxy {
       useRequestAnimationFrame: !intentPrint,
       pdfBug: this._pdfBug,
       pageColors,
+      renderTheme,
       enableHWA: this._transport.enableHWA,
       operationsFilter,
     });
@@ -3239,6 +3247,7 @@ class InternalRenderTask {
     useRequestAnimationFrame = false,
     pdfBug = false,
     pageColors = null,
+    renderTheme = null,
     enableHWA = false,
     operationsFilter = null,
   }) {
@@ -3254,6 +3263,7 @@ class InternalRenderTask {
     this.filterFactory = filterFactory;
     this._pdfBug = pdfBug;
     this.pageColors = pageColors;
+    this.renderTheme = renderTheme;
 
     this.running = false;
     this.graphicsReadyCallback = null;
@@ -3322,6 +3332,7 @@ class InternalRenderTask {
       { optionalContentConfig },
       this.annotationCanvasMap,
       this.pageColors,
+      this.renderTheme,
       dependencyTracker
     );
     this.gfx.beginDrawing({

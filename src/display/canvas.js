@@ -73,6 +73,181 @@ const MIN_MAX_INIT = new Float32Array([
   -Infinity,
 ]);
 
+const DEFAULT_RENDER_THEME = {
+  background: "#121212",
+  foreground: "#E6E6E6",
+};
+
+function parseRgbFromColor(color) {
+  if (typeof color !== "string") {
+    return null;
+  }
+  const trimmed = color.trim();
+  if (trimmed.startsWith("#")) {
+    const hex = trimmed.slice(1);
+    if (hex.length === 3) {
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      return [r, g, b];
+    }
+    if (hex.length === 6 || hex.length === 8) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return [r, g, b];
+    }
+    return null;
+  }
+
+  if (trimmed.startsWith("rgb(") || trimmed.startsWith("rgba(")) {
+    const open = trimmed.indexOf("(");
+    const close = trimmed.indexOf(")");
+    if (open === -1 || close === -1) {
+      return null;
+    }
+    const parts = trimmed
+      .slice(open + 1, close)
+      .split(",")
+      .map(part => part.trim());
+    if (parts.length < 3) {
+      return null;
+    }
+    const parseChannel = value => {
+      const number = parseFloat(value);
+      if (Number.isNaN(number)) {
+        return 0;
+      }
+      if (value.includes("%")) {
+        return Math.round((number / 100) * 255);
+      }
+      return Math.round(number);
+    };
+    return [
+      parseChannel(parts[0]),
+      parseChannel(parts[1]),
+      parseChannel(parts[2]),
+    ];
+  }
+
+  return null;
+}
+
+function rgbToHsl(r, g, b, out) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+
+  if (max === min) {
+    out[0] = 0;
+    out[1] = 0;
+  } else {
+    const d = max - min;
+    out[1] = l < 0.5 ? d / (max + min) : d / (2 - max - min);
+    switch (max) {
+      case r:
+        out[0] = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+        break;
+      case g:
+        out[0] = ((b - r) / d + 2) * 60;
+        break;
+      case b:
+        out[0] = ((r - g) / d + 4) * 60;
+        break;
+    }
+  }
+  out[2] = l;
+}
+
+function hslToRgb(hsl, out) {
+  const h = hsl[0];
+  const s = hsl[1];
+  const l = hsl[2];
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+
+  switch (Math.floor(h / 60)) {
+    case 0:
+      out[0] = c + m;
+      out[1] = x + m;
+      out[2] = m;
+      break;
+    case 1:
+      out[0] = x + m;
+      out[1] = c + m;
+      out[2] = m;
+      break;
+    case 2:
+      out[0] = m;
+      out[1] = c + m;
+      out[2] = x + m;
+      break;
+    case 3:
+      out[0] = m;
+      out[1] = x + m;
+      out[2] = c + m;
+      break;
+    case 4:
+      out[0] = x + m;
+      out[1] = m;
+      out[2] = c + m;
+      break;
+    case 5:
+    case 6:
+      out[0] = c + m;
+      out[1] = m;
+      out[2] = x + m;
+      break;
+  }
+}
+
+function normalizeRenderTheme(renderTheme) {
+  if (!renderTheme) {
+    return null;
+  }
+  const background = renderTheme.background || DEFAULT_RENDER_THEME.background;
+  const foreground = renderTheme.foreground || DEFAULT_RENDER_THEME.foreground;
+  const backgroundRgb = parseRgbFromColor(background);
+  const foregroundRgb = parseRgbFromColor(foreground);
+  if (!backgroundRgb || !foregroundRgb) {
+    return null;
+  }
+
+  const backgroundHex = Util.makeHexColor(
+    backgroundRgb[0],
+    backgroundRgb[1],
+    backgroundRgb[2]
+  );
+  const foregroundHex = Util.makeHexColor(
+    foregroundRgb[0],
+    foregroundRgb[1],
+    foregroundRgb[2]
+  );
+
+  const backgroundHsl = new Float32Array(3);
+  const foregroundHsl = new Float32Array(3);
+  rgbToHsl(backgroundRgb[0], backgroundRgb[1], backgroundRgb[2], backgroundHsl);
+  rgbToHsl(foregroundRgb[0], foregroundRgb[1], foregroundRgb[2], foregroundHsl);
+
+  return {
+    background,
+    foreground,
+    selection: renderTheme.selection || null,
+    backgroundHex,
+    foregroundHex,
+    backgroundRgb: new Uint8ClampedArray(backgroundRgb),
+    foregroundRgb: new Uint8ClampedArray(foregroundRgb),
+    backgroundHsl,
+    foregroundHsl,
+    key: `${backgroundHex}-${foregroundHex}`,
+  };
+}
+
 /**
  * Overrides certain methods on a 2d ctx so that when they are called they
  * will also call the same method on the destCtx. The methods that are
@@ -603,8 +778,9 @@ function copyCtxState(sourceCtx, destCtx) {
   }
 }
 
-function resetCtxToDefault(ctx) {
-  ctx.strokeStyle = ctx.fillStyle = "#000000";
+function resetCtxToDefault(ctx, renderTheme = null) {
+  const defaultColor = renderTheme?.foregroundHex || "#000000";
+  ctx.strokeStyle = ctx.fillStyle = defaultColor;
   ctx.fillRule = "nonzero";
   ctx.globalAlpha = 1;
   ctx.lineWidth = 1;
@@ -657,13 +833,24 @@ class CanvasGraphics {
     { optionalContentConfig, markedContentStack = null },
     annotationCanvasMap,
     pageColors,
+    renderTheme,
     dependencyTracker
   ) {
     this.ctx = canvasCtx;
+    this._renderTheme = pageColors ? null : normalizeRenderTheme(renderTheme);
+    this._renderThemeCache = this._renderTheme ? new Map() : null;
+    this._renderThemeScratch = this._renderTheme
+      ? {
+          hsl: new Float32Array(3),
+          rgb: new Float32Array(3),
+          out: new Uint8ClampedArray(3),
+        }
+      : null;
     this.current = new CanvasExtraState(
       this.ctx.canvas.width,
       this.ctx.canvas.height
     );
+    this._setDefaultStateColors();
     this.stateStack = [];
     this.pendingClip = null;
     this.pendingEOFill = false;
@@ -701,6 +888,59 @@ class CanvasGraphics {
     this.dependencyTracker = dependencyTracker ?? null;
   }
 
+  _setDefaultStateColors() {
+    if (!this._renderTheme) {
+      return;
+    }
+    const defaultColor = this._renderTheme.foregroundHex;
+    this.current.fillColor = defaultColor;
+    this.current.strokeColor = defaultColor;
+  }
+
+  getRenderThemeKey() {
+    return this._renderTheme?.key || null;
+  }
+
+  getThemedRgb(r, g, b) {
+    const theme = this._renderTheme;
+    if (!theme) {
+      return [r, g, b];
+    }
+    const scratch = this._renderThemeScratch;
+    rgbToHsl(r, g, b, scratch.hsl);
+    const invL = 1 - scratch.hsl[2];
+    scratch.hsl[2] =
+      theme.backgroundHsl[2] +
+      invL * (theme.foregroundHsl[2] - theme.backgroundHsl[2]);
+    hslToRgb(scratch.hsl, scratch.rgb);
+    const out = scratch.out;
+    out[0] = Math.min(255, Math.max(0, Math.round(scratch.rgb[0] * 255)));
+    out[1] = Math.min(255, Math.max(0, Math.round(scratch.rgb[1] * 255)));
+    out[2] = Math.min(255, Math.max(0, Math.round(scratch.rgb[2] * 255)));
+    return out;
+  }
+
+  getThemedColor(color) {
+    if (!this._renderTheme || typeof color !== "string") {
+      return color;
+    }
+    if (color === "transparent") {
+      return color;
+    }
+    const cached = this._renderThemeCache.get(color);
+    if (cached) {
+      return cached;
+    }
+    const rgb = parseRgbFromColor(color);
+    if (!rgb) {
+      return color;
+    }
+    const themed = this.getThemedRgb(rgb[0], rgb[1], rgb[2]);
+    const themedColor = Util.makeHexColor(themed[0], themed[1], themed[2]);
+    this._renderThemeCache.set(color, themedColor);
+    return themedColor;
+  }
+
   getObject(opIdx, data, fallback = null) {
     if (typeof data === "string") {
       this.dependencyTracker?.recordNamedDependency(opIdx, data);
@@ -726,7 +966,8 @@ class CanvasGraphics {
     const height = this.ctx.canvas.height;
 
     const savedFillStyle = this.ctx.fillStyle;
-    this.ctx.fillStyle = background || "#ffffff";
+    const defaultBackground = this._renderTheme?.background || "#ffffff";
+    this.ctx.fillStyle = background || defaultBackground;
     this.ctx.fillRect(0, 0, width, height);
     this.ctx.fillStyle = savedFillStyle;
 
@@ -746,7 +987,8 @@ class CanvasGraphics {
     }
 
     this.ctx.save();
-    resetCtxToDefault(this.ctx);
+    resetCtxToDefault(this.ctx, this._renderTheme);
+    this._setDefaultStateColors();
     if (transform) {
       this.ctx.transform(...transform);
       this.outputScaleX = transform[0];
@@ -2370,6 +2612,7 @@ class CanvasGraphics {
             },
             undefined,
             undefined,
+            this._renderTheme,
             this.dependencyTracker
               ? new CanvasNestedDependencyTracker(
                   this.dependencyTracker,
@@ -2405,6 +2648,7 @@ class CanvasGraphics {
 
   setStrokeRGBColor(opIdx, color) {
     this.dependencyTracker?.recordSimpleData("strokeColor", opIdx);
+    color = this.getThemedColor(color);
     this.ctx.strokeStyle = this.current.strokeColor = color;
     this.current.patternStroke = false;
   }
@@ -2417,6 +2661,7 @@ class CanvasGraphics {
 
   setFillRGBColor(opIdx, color) {
     this.dependencyTracker?.recordSimpleData("fillColor", opIdx);
+    color = this.getThemedColor(color);
     this.ctx.fillStyle = this.current.fillColor = color;
     this.current.patternFill = false;
   }
@@ -2720,7 +2965,7 @@ class CanvasGraphics {
     // a clipping path, whatever...
     // So in order to have something clean, we restore the initial state.
     this.#restoreInitialState();
-    resetCtxToDefault(this.ctx);
+    resetCtxToDefault(this.ctx, this._renderTheme);
 
     this.ctx.save();
     this.save(opIdx);
@@ -2763,9 +3008,9 @@ class CanvasGraphics {
         this.ctx.save();
         this.ctx.setTransform(XY[0], 0, 0, -XY[1], 0, height * XY[1]);
 
-        resetCtxToDefault(this.ctx);
+        resetCtxToDefault(this.ctx, this._renderTheme);
       } else {
-        resetCtxToDefault(this.ctx);
+        resetCtxToDefault(this.ctx, this._renderTheme);
 
         // Consume a potential path before clipping.
         this.endPath(opIdx);
@@ -2780,6 +3025,7 @@ class CanvasGraphics {
       this.ctx.canvas.width,
       this.ctx.canvas.height
     );
+    this._setDefaultStateColors();
 
     this.transform(opIdx, ...transform);
     this.transform(opIdx, ...matrix);
