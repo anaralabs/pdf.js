@@ -83,19 +83,64 @@ function parseRgbFromColor(color) {
     return null;
   }
   const trimmed = color.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const clampChannel = value =>
+    Math.min(255, Math.max(0, Number.isNaN(value) ? 0 : value));
+  const parseChannel = value => {
+    const number = parseFloat(value);
+    if (Number.isNaN(number)) {
+      return 0;
+    }
+    if (value.includes("%")) {
+      return clampChannel(Math.round((number / 100) * 255));
+    }
+    return clampChannel(Math.round(number));
+  };
+  const parseAlpha = value => {
+    const number = parseFloat(value);
+    if (Number.isNaN(number)) {
+      return null;
+    }
+    const alpha = value.includes("%") ? number / 100 : number;
+    return Math.min(1, Math.max(0, alpha));
+  };
+
   if (trimmed.startsWith("#")) {
     const hex = trimmed.slice(1);
     if (hex.length === 3) {
       const r = parseInt(hex[0] + hex[0], 16);
       const g = parseInt(hex[1] + hex[1], 16);
       const b = parseInt(hex[2] + hex[2], 16);
-      return [r, g, b];
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+        return null;
+      }
+      return { rgb: [r, g, b], alpha: 1, hasAlpha: false };
     }
     if (hex.length === 6 || hex.length === 8) {
       const r = parseInt(hex.slice(0, 2), 16);
       const g = parseInt(hex.slice(2, 4), 16);
       const b = parseInt(hex.slice(4, 6), 16);
-      return [r, g, b];
+      if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+        return null;
+      }
+      let hasAlpha = false;
+      let alpha = 1;
+      if (hex.length === 8) {
+        const a = parseInt(hex.slice(6, 8), 16);
+        if (Number.isNaN(a)) {
+          return null;
+        }
+        hasAlpha = true;
+        alpha = Math.min(1, Math.max(0, a / 255));
+      }
+      return {
+        rgb: [clampChannel(r), clampChannel(g), clampChannel(b)],
+        alpha,
+        hasAlpha,
+      };
     }
     return null;
   }
@@ -113,21 +158,22 @@ function parseRgbFromColor(color) {
     if (parts.length < 3) {
       return null;
     }
-    const parseChannel = value => {
-      const number = parseFloat(value);
-      if (Number.isNaN(number)) {
-        return 0;
-      }
-      if (value.includes("%")) {
-        return Math.round((number / 100) * 255);
-      }
-      return Math.round(number);
-    };
-    return [
+    const rgb = [
       parseChannel(parts[0]),
       parseChannel(parts[1]),
       parseChannel(parts[2]),
     ];
+    let hasAlpha = false;
+    let alpha = 1;
+    if (parts.length >= 4) {
+      const parsedAlpha = parseAlpha(parts[3]);
+      if (parsedAlpha === null) {
+        return null;
+      }
+      hasAlpha = true;
+      alpha = parsedAlpha;
+    }
+    return { rgb, alpha, hasAlpha };
   }
 
   return null;
@@ -212,11 +258,13 @@ function normalizeRenderTheme(renderTheme) {
   }
   const background = renderTheme.background || DEFAULT_RENDER_THEME.background;
   const foreground = renderTheme.foreground || DEFAULT_RENDER_THEME.foreground;
-  const backgroundRgb = parseRgbFromColor(background);
-  const foregroundRgb = parseRgbFromColor(foreground);
-  if (!backgroundRgb || !foregroundRgb) {
+  const backgroundData = parseRgbFromColor(background);
+  const foregroundData = parseRgbFromColor(foreground);
+  if (!backgroundData || !foregroundData) {
     return null;
   }
+  const backgroundRgb = backgroundData.rgb;
+  const foregroundRgb = foregroundData.rgb;
 
   const backgroundHex = Util.makeHexColor(
     backgroundRgb[0],
@@ -235,8 +283,8 @@ function normalizeRenderTheme(renderTheme) {
   rgbToHsl(foregroundRgb[0], foregroundRgb[1], foregroundRgb[2], foregroundHsl);
 
   return {
-    background,
-    foreground,
+    background: backgroundHex,
+    foreground: foregroundHex,
     selection: renderTheme.selection || null,
     backgroundHex,
     foregroundHex,
@@ -931,10 +979,14 @@ class CanvasGraphics {
     if (cached) {
       return cached;
     }
-    const rgb = parseRgbFromColor(color);
-    if (!rgb) {
+    const parsed = parseRgbFromColor(color);
+    if (!parsed) {
       return color;
     }
+    if (parsed.hasAlpha && parsed.alpha < 1) {
+      return color;
+    }
+    const rgb = parsed.rgb;
     const themed = this.getThemedRgb(rgb[0], rgb[1], rgb[2]);
     const themedColor = Util.makeHexColor(themed[0], themed[1], themed[2]);
     this._renderThemeCache.set(color, themedColor);
@@ -966,7 +1018,7 @@ class CanvasGraphics {
     const height = this.ctx.canvas.height;
 
     const savedFillStyle = this.ctx.fillStyle;
-    const defaultBackground = this._renderTheme?.background || "#ffffff";
+    const defaultBackground = this._renderTheme?.backgroundHex || "#ffffff";
     this.ctx.fillStyle = background || defaultBackground;
     this.ctx.fillRect(0, 0, width, height);
     this.ctx.fillStyle = savedFillStyle;

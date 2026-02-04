@@ -1246,6 +1246,7 @@ class PDFDocumentProxy {
  *   `pageColors`-option is used.
  * @property {Object} [renderTheme] - Apply a theme transform during rendering
  *   (e.g. native dark mode) by mapping colors while keeping images intact.
+ *   Alpha channels are ignored and treated as opaque.
  * @property {string} [renderTheme.background] - Theme background color.
  * @property {string} [renderTheme.foreground] - Theme foreground color.
  * @property {string} [renderTheme.selection] - Theme selection/highlight color.
