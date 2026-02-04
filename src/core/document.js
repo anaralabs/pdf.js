@@ -467,11 +467,15 @@ class Page {
     pageIndex = this.pageIndex,
     annotationStorage = null,
     modifiedIds = null,
+    invertImages = false,
   }) {
     const contentStreamPromise = this.getContentStream();
     const resourcesPromise = this.loadResources(RESOURCES_KEYS_OPERATOR_LIST);
 
-    const partialEvaluator = this.#createPartialEvaluator(handler);
+    let partialEvaluator = this.#createPartialEvaluator(handler);
+    if (invertImages === true) {
+      partialEvaluator = partialEvaluator.clone({ invertImages: true });
+    }
 
     const newAnnotsByPage = !this.xfaFactory
       ? getNewAnnotationsMap(annotationStorage)
@@ -1831,6 +1835,11 @@ class PDFDocument {
     return this.catalog
       ? this.catalog.cleanup(manuallyTriggered)
       : clearGlobalCaches();
+  }
+
+  clearImageCaches() {
+    // Only clear cached image data; keep other caches intact.
+    this.catalog?.globalImageCache?.clear(/* onlyData = */ true);
   }
 
   async #collectFieldObjects(

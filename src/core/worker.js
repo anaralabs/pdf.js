@@ -871,6 +871,7 @@ class WorkerMessageHandler {
             cacheKey: data.cacheKey,
             annotationStorage: data.annotationStorage,
             modifiedIds: data.modifiedIds,
+            invertImages: data.invertImages === true,
             pageIndex,
           })
           .then(
@@ -956,6 +957,10 @@ class WorkerMessageHandler {
 
     handler.on("Cleanup", function (data) {
       return pdfManager.cleanup(/* manuallyTriggered = */ true);
+    });
+
+    handler.on("ClearImageCaches", function (data) {
+      return pdfManager.ensureDoc("clearImageCaches");
     });
 
     handler.on("Terminate", function (data) {

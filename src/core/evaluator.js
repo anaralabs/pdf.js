@@ -98,6 +98,7 @@ const DefaultPartialEvaluatorOptions = Object.freeze({
   useSystemFonts: true,
   useWasm: true,
   useWorkerFetch: true,
+  invertImages: false,
   cMapUrl: null,
   iccUrl: null,
   standardFontDataUrl: null,
@@ -579,8 +580,12 @@ class PartialEvaluator {
     localImageCache,
     localColorSpaceCache,
   }) {
-    const { maxImageSize, ignoreErrors, isOffscreenCanvasSupported } =
-      this.options;
+    const {
+      maxImageSize,
+      ignoreErrors,
+      isOffscreenCanvasSupported,
+      invertImages,
+    } = this.options;
 
     const { dict } = image;
     const imageRef = dict.objId;
@@ -724,7 +729,8 @@ class PartialEvaluator {
         // any other kind.
         imgData = await imageObj.createImageData(
           /* forceRGBA = */ true,
-          /* isOffscreenCanvasSupported = */ false
+          /* isOffscreenCanvasSupported = */ false,
+          invertImages
         );
         operatorList.addImageOps(
           OPS.paintInlineImageXObject,
@@ -817,7 +823,8 @@ class PartialEvaluator {
       .then(async imageObj => {
         imgData = await imageObj.createImageData(
           /* forceRGBA = */ false,
-          isOffscreenCanvasSupported
+          isOffscreenCanvasSupported,
+          invertImages
         );
         imgData.dataLen = imgData.bitmap
           ? imgData.width * imgData.height * 4
