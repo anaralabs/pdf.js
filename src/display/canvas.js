@@ -74,9 +74,18 @@ const MIN_MAX_INIT = new Float32Array([
 ]);
 
 const DEFAULT_RENDER_THEME = {
-  background: "#121212",
-  foreground: "#E6E6E6",
+  background: "#171717",
+  foreground: "#E8E8E8",
 };
+
+function buildThemeImageFilter(backgroundHsl, foregroundHsl) {
+  const range = Math.max(0, Math.min(1, foregroundHsl[2] - backgroundHsl[2]));
+  const contrast = Math.round(range * 100);
+  return (
+    "invert(100%) hue-rotate(180deg) " +
+    `brightness(80%) contrast(${contrast}%)`
+  );
+}
 
 function parseRgbFromColor(color) {
   if (typeof color !== "string") {
@@ -282,6 +291,18 @@ function normalizeRenderTheme(renderTheme) {
   rgbToHsl(backgroundRgb[0], backgroundRgb[1], backgroundRgb[2], backgroundHsl);
   rgbToHsl(foregroundRgb[0], foregroundRgb[1], foregroundRgb[2], foregroundHsl);
 
+  let imageFilter = renderTheme.imageFilter;
+  if (imageFilter === true || imageFilter === "auto") {
+    imageFilter = buildThemeImageFilter(backgroundHsl, foregroundHsl);
+  } else if (typeof imageFilter !== "string") {
+    imageFilter = null;
+  } else {
+    imageFilter = imageFilter.trim();
+    if (!imageFilter || imageFilter === "none") {
+      imageFilter = null;
+    }
+  }
+
   return {
     background: backgroundHex,
     foreground: foregroundHex,
@@ -293,6 +314,7 @@ function normalizeRenderTheme(renderTheme) {
     backgroundHsl,
     foregroundHsl,
     key: `${backgroundHex}-${foregroundHex}`,
+    imageFilter,
   };
 }
 
@@ -3289,16 +3311,39 @@ class CanvasGraphics {
   }
 
   applyTransferMapsToCanvas(ctx) {
-    if (this.current.transferMaps !== "none") {
-      ctx.filter = this.current.transferMaps;
+    const imageFilter = this._getImageFilterForImages();
+    if (imageFilter !== "none") {
+      ctx.filter = imageFilter;
       ctx.drawImage(ctx.canvas, 0, 0);
       ctx.filter = "none";
     }
     return ctx.canvas;
   }
 
+  _getImageFilterForImages() {
+    const imageFilter = this._renderTheme?.imageFilter;
+    const transferMaps = this.current.transferMaps;
+    if (!imageFilter) {
+      return transferMaps;
+    }
+    if (!transferMaps || transferMaps === "none") {
+      return imageFilter;
+    }
+    // Apply transfer maps before the theme filter to match CSS-on-output.
+    return `${transferMaps} ${imageFilter}`;
+  }
+
+  _getInlineImageFilter() {
+    const imageFilter = this._renderTheme?.imageFilter;
+    if (!imageFilter || this.current.transferMaps !== "none") {
+      return null;
+    }
+    return imageFilter;
+  }
+
   applyTransferMapsToBitmap(imgData) {
-    if (this.current.transferMaps === "none") {
+    const imageFilter = this._getImageFilterForImages();
+    if (imageFilter === "none") {
       return imgData.bitmap;
     }
     const { bitmap, width, height } = imgData;
@@ -3308,7 +3353,7 @@ class CanvasGraphics {
       height
     );
     const tmpCtx = tmpCanvas.context;
-    tmpCtx.filter = this.current.transferMaps;
+    tmpCtx.filter = imageFilter;
     tmpCtx.drawImage(bitmap, 0, 0);
     tmpCtx.filter = "none";
 
@@ -3329,8 +3374,13 @@ class CanvasGraphics {
     // It must be applied to the image before rescaling else some artifacts
     // could appear.
     // The final restore will reset it to its value.
+    const inlineImageFilter = this._getInlineImageFilter();
     const { filter } = ctx;
-    if (filter !== "none" && filter !== "") {
+    if (inlineImageFilter) {
+      if (filter !== inlineImageFilter) {
+        ctx.filter = inlineImageFilter;
+      }
+    } else if (filter !== "none" && filter !== "") {
       ctx.filter = "none";
     }
 
@@ -3339,7 +3389,9 @@ class CanvasGraphics {
 
     let imgToPaint;
     if (imgData.bitmap) {
-      imgToPaint = this.applyTransferMapsToBitmap(imgData);
+      imgToPaint = inlineImageFilter
+        ? imgData.bitmap
+        : this.applyTransferMapsToBitmap(imgData);
     } else if (
       (typeof HTMLElement === "function" && imgData instanceof HTMLElement) ||
       !imgData.data
@@ -3354,7 +3406,9 @@ class CanvasGraphics {
       );
       const tmpCtx = tmpCanvas.context;
       putBinaryImageData(tmpCtx, imgData);
-      imgToPaint = this.applyTransferMapsToCanvas(tmpCtx);
+      imgToPaint = inlineImageFilter
+        ? tmpCanvas.canvas
+        : this.applyTransferMapsToCanvas(tmpCtx);
     }
 
     const scaled = this._scaleImage(
@@ -3384,6 +3438,9 @@ class CanvasGraphics {
       width,
       height
     );
+    if (inlineImageFilter) {
+      ctx.filter = "none";
+    }
     this.compose();
     this.restore(opIdx);
   }
@@ -3393,6 +3450,7 @@ class CanvasGraphics {
       return;
     }
     const ctx = this.ctx;
+    const inlineImageFilter = this._getInlineImageFilter();
     let imgToPaint;
     if (imgData.bitmap) {
       imgToPaint = imgData.bitmap;
@@ -3403,7 +3461,9 @@ class CanvasGraphics {
       const tmpCanvas = this.cachedCanvases.getCanvas("inlineImage", w, h);
       const tmpCtx = tmpCanvas.context;
       putBinaryImageData(tmpCtx, imgData);
-      imgToPaint = this.applyTransferMapsToCanvas(tmpCtx);
+      imgToPaint = inlineImageFilter
+        ? tmpCanvas.canvas
+        : this.applyTransferMapsToCanvas(tmpCtx);
     }
 
     this.dependencyTracker?.resetBBox(opIdx);
@@ -3412,6 +3472,9 @@ class CanvasGraphics {
       ctx.save();
       ctx.transform(...entry.transform);
       ctx.scale(1, -1);
+      if (inlineImageFilter) {
+        ctx.filter = inlineImageFilter;
+      }
       drawImageAtIntegerCoords(
         ctx,
         imgToPaint,

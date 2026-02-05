@@ -77,106 +77,6 @@ function resizeImageMask(src, bpc, w1, h1, w2, h2) {
   return dest;
 }
 
-const INVERT_TEXT_BG_R = 23 / 255;
-const INVERT_TEXT_BG_G = 23 / 255;
-const INVERT_TEXT_BG_B = 23 / 255;
-const INVERT_TEXT_FG_R = 232 / 255;
-const INVERT_TEXT_FG_G = 232 / 255;
-const INVERT_TEXT_FG_B = 232 / 255;
-const INVERT_TEXT_BLACK_POINT = 0.03;
-const INVERT_TEXT_GAMMA = 0.7;
-const INVERT_TEXT_CONTRAST = 1.3;
-
-function clamp01(value) {
-  if (value <= 0) {
-    return 0;
-  }
-  if (value >= 1) {
-    return 1;
-  }
-  return value;
-}
-
-function toByte(value) {
-  if (value <= 0) {
-    return 0;
-  }
-  if (value >= 255) {
-    return 255;
-  }
-  return (value + 0.5) | 0;
-}
-
-function invertImageData(data, kind) {
-  if (!data) {
-    return;
-  }
-  switch (kind) {
-    case ImageKind.GRAYSCALE_1BPP:
-      for (let i = 0, ii = data.length; i < ii; i++) {
-        data[i] ^= 0xff;
-      }
-      return;
-    case ImageKind.RGB_24BPP: {
-      for (let i = 0, ii = data.length; i < ii; i += 3) {
-        let r = data[i] / 255;
-        let g = data[i + 1] / 255;
-        let b = data[i + 2] / 255;
-        let luma = clamp01(0.2126 * r + 0.7152 * g + 0.0722 * b);
-        luma = 1 - luma;
-        if (INVERT_TEXT_BLACK_POINT > 0) {
-          luma =
-            Math.max(0, luma - INVERT_TEXT_BLACK_POINT) /
-            (1 - INVERT_TEXT_BLACK_POINT);
-        }
-        if (INVERT_TEXT_CONTRAST !== 1) {
-          luma = clamp01((luma - 0.5) * INVERT_TEXT_CONTRAST + 0.5);
-        }
-        if (INVERT_TEXT_GAMMA !== 1) {
-          luma **= INVERT_TEXT_GAMMA;
-        }
-
-        r = INVERT_TEXT_BG_R + (INVERT_TEXT_FG_R - INVERT_TEXT_BG_R) * luma;
-        g = INVERT_TEXT_BG_G + (INVERT_TEXT_FG_G - INVERT_TEXT_BG_G) * luma;
-        b = INVERT_TEXT_BG_B + (INVERT_TEXT_FG_B - INVERT_TEXT_BG_B) * luma;
-
-        data[i] = toByte(r * 255);
-        data[i + 1] = toByte(g * 255);
-        data[i + 2] = toByte(b * 255);
-      }
-      return;
-    }
-    case ImageKind.RGBA_32BPP: {
-      for (let i = 0, ii = data.length; i < ii; i += 4) {
-        let r = data[i] / 255;
-        let g = data[i + 1] / 255;
-        let b = data[i + 2] / 255;
-        let luma = clamp01(0.2126 * r + 0.7152 * g + 0.0722 * b);
-        luma = 1 - luma;
-        if (INVERT_TEXT_BLACK_POINT > 0) {
-          luma =
-            Math.max(0, luma - INVERT_TEXT_BLACK_POINT) /
-            (1 - INVERT_TEXT_BLACK_POINT);
-        }
-        if (INVERT_TEXT_CONTRAST !== 1) {
-          luma = clamp01((luma - 0.5) * INVERT_TEXT_CONTRAST + 0.5);
-        }
-        if (INVERT_TEXT_GAMMA !== 1) {
-          luma **= INVERT_TEXT_GAMMA;
-        }
-
-        r = INVERT_TEXT_BG_R + (INVERT_TEXT_FG_R - INVERT_TEXT_BG_R) * luma;
-        g = INVERT_TEXT_BG_G + (INVERT_TEXT_FG_G - INVERT_TEXT_BG_G) * luma;
-        b = INVERT_TEXT_BG_B + (INVERT_TEXT_FG_B - INVERT_TEXT_BG_B) * luma;
-
-        data[i] = toByte(r * 255);
-        data[i + 1] = toByte(g * 255);
-        data[i + 2] = toByte(b * 255);
-      }
-    }
-  }
-}
-
 class PDFImage {
   constructor({
     xref,
@@ -795,12 +695,7 @@ class PDFImage {
     }
   }
 
-  async createImageData(
-    forceRGBA = false,
-    isOffscreenCanvasSupported = false,
-    invertImages = false
-  ) {
-    const shouldInvert = invertImages === true;
+  async createImageData(forceRGBA = false, isOffscreenCanvasSupported = false) {
     const drawWidth = this.drawWidth;
     const drawHeight = this.drawHeight;
     const imgData = {
@@ -829,9 +724,6 @@ class PDFImage {
         originalHeight * originalWidth * 4,
         {}
       ));
-      if (shouldInvert) {
-        invertImageData(imgArray, ImageKind.RGBA_32BPP);
-      }
 
       if (isOffscreenCanvasSupported) {
         if (!mustBeResized) {
@@ -873,18 +765,13 @@ class PDFImage {
         drawWidth === originalWidth &&
         drawHeight === originalHeight
       ) {
-        if (!shouldInvert) {
-          const image = await this.#getImage(originalWidth, originalHeight);
-          if (image) {
-            return image;
-          }
+        const image = await this.#getImage(originalWidth, originalHeight);
+        if (image) {
+          return image;
         }
         const data = await this.getImageBytes(originalHeight * rowBytes, {});
         if (isOffscreenCanvasSupported) {
           if (mustBeResized) {
-            if (shouldInvert) {
-              invertImageData(data, kind);
-            }
             return ImageResizer.createImage(
               {
                 data,
@@ -895,9 +782,6 @@ class PDFImage {
               },
               this.needsDecode
             );
-          }
-          if (shouldInvert) {
-            invertImageData(data, kind);
           }
           return this.createBitmap(kind, originalWidth, originalHeight, data);
         }
@@ -914,9 +798,6 @@ class PDFImage {
           for (let i = 0, ii = buffer.length; i < ii; i++) {
             buffer[i] ^= 0xff;
           }
-        }
-        if (shouldInvert) {
-          invertImageData(imgData.data, kind);
         }
         return imgData;
       }
@@ -946,20 +827,15 @@ class PDFImage {
           }
 
           if (isHandled) {
-            if (!shouldInvert) {
-              const image = await this.#getImage(drawWidth, drawHeight);
-              if (image) {
-                return image;
-              }
+            const image = await this.#getImage(drawWidth, drawHeight);
+            if (image) {
+              return image;
             }
             const rgba = await this.getImageBytes(imageLength, {
               drawWidth,
               drawHeight,
               forceRGBA: true,
             });
-            if (shouldInvert) {
-              invertImageData(rgba, ImageKind.RGBA_32BPP);
-            }
             return this.createBitmap(
               ImageKind.RGBA_32BPP,
               drawWidth,
@@ -980,9 +856,6 @@ class PDFImage {
                 drawHeight,
                 forceRGB: true,
               });
-              if (shouldInvert) {
-                invertImageData(imgData.data, ImageKind.RGB_24BPP);
-              }
               if (mustBeResized) {
                 // The image is too big so we resize it.
                 return ImageResizer.createImage(imgData);
@@ -1055,9 +928,6 @@ class PDFImage {
     );
     if (maybeUndoPreblend) {
       this.undoPreblend(data, drawWidth, actualHeight);
-    }
-    if (shouldInvert) {
-      invertImageData(data, imgData.kind);
     }
 
     if (isOffscreenCanvasSupported && !mustBeResized) {

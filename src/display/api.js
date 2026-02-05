@@ -86,6 +86,8 @@ import { TextLayer } from "./text_layer.js";
 import { XfaText } from "./xfa_text.js";
 
 const RENDERING_CANCELLED_TIMEOUT = 100; // ms
+const DEFAULT_IMAGE_INVERT_FILTER =
+  "brightness(80%) contrast(200%) invert(91%) hue-rotate(180deg)";
 
 /**
  * @typedef { Int8Array | Uint8Array | Uint8ClampedArray |
@@ -1250,8 +1252,13 @@ class PDFDocumentProxy {
  * @property {string} [renderTheme.background] - Theme background color.
  * @property {string} [renderTheme.foreground] - Theme foreground color.
  * @property {string} [renderTheme.selection] - Theme selection/highlight color.
- * @property {boolean} [invertImages] - Invert colors for all images during
- *   rendering. Useful for dark mode in image-heavy documents.
+ * @property {string | boolean} [renderTheme.imageFilter] - Optional CSS filter
+ *   to apply to images when `invertImages` is enabled. Use a filter string
+ *   (e.g. `invert(100%) hue-rotate(180deg)`) or `true`/`"auto"` to derive one
+ *   from the theme colors. If omitted while `invertImages` is enabled, a
+ *   built-in default filter is used.
+ * @property {boolean} [invertImages] - Apply an image-only CSS filter during
+ *   rendering to invert colors. Useful for dark mode in image-heavy documents.
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
@@ -1294,8 +1301,8 @@ class PDFDocumentProxy {
  *      (as above) but where interactive form elements are updated with data
  *      from the {@link AnnotationStorage}-instance; useful e.g. for printing.
  *   The default value is `AnnotationMode.ENABLE`.
- * @property {boolean} [invertImages] - Invert colors for all images during
- *   operator list generation.
+ * @property {boolean} [invertImages] - Ignored in the display layer; image
+ *   inversion is handled via CSS filters during rendering.
  * @property {PrintAnnotationStorage} [printAnnotationStorage]
  * @property {boolean} [isEditing] - Render the page in editing mode.
  */
@@ -1487,16 +1494,29 @@ class PDFPageProxy {
   }) {
     this._stats?.time("Overall");
 
-    const shouldInvertImages = invertImages === true;
-    const inversionPromise =
-      this._transport.ensureImageInversion?.(shouldInvertImages) || null;
+    const imageFilter = renderTheme?.imageFilter;
+    const shouldApplyImageFilter = invertImages === true;
+    if (shouldApplyImageFilter) {
+      if (!renderTheme) {
+        renderTheme = {};
+      }
+      if (imageFilter === undefined) {
+        renderTheme = {
+          ...renderTheme,
+          imageFilter: DEFAULT_IMAGE_INVERT_FILTER,
+        };
+      }
+    } else if (renderTheme && imageFilter !== undefined) {
+      renderTheme = { ...renderTheme };
+      delete renderTheme.imageFilter;
+    }
+
     const intentArgs = this._transport.getRenderingIntent(
       intent,
       annotationMode,
       printAnnotationStorage,
       isEditing,
-      /* isOpList = */ false,
-      shouldInvertImages
+      /* isOpList = */ false
     );
     const { renderingIntent, cacheKey } = intentArgs;
     // If there was a pending destroy, cancel it so no cleanup happens during
@@ -1532,7 +1552,7 @@ class PDFPageProxy {
       };
 
       this._stats?.time("Page Request");
-      this._pumpOperatorList({ ...intentArgs, inversionPromise });
+      this._pumpOperatorList(intentArgs);
     }
 
     const recordForDebugger = Boolean(
@@ -1662,14 +1682,11 @@ class PDFPageProxy {
     intent = "display",
     annotationMode = AnnotationMode.ENABLE,
     printAnnotationStorage = null,
-    invertImages = false,
     isEditing = false,
   } = {}) {
     if (typeof PDFJSDev !== "undefined" && !PDFJSDev.test("GENERIC")) {
       throw new Error("Not implemented: getOperatorList");
     }
-    const inversionPromise =
-      this._transport.ensureImageInversion?.(invertImages === true) || null;
     function operatorListChanged() {
       if (intentState.operatorList.lastChunk) {
         intentState.opListReadCapability.resolve(intentState.operatorList);
@@ -1683,8 +1700,7 @@ class PDFPageProxy {
       annotationMode,
       printAnnotationStorage,
       isEditing,
-      /* isOpList = */ true,
-      invertImages === true
+      /* isOpList = */ true
     );
     let intentState = this._intentStates.get(intentArgs.cacheKey);
     if (!intentState) {
@@ -1706,7 +1722,7 @@ class PDFPageProxy {
       };
 
       this._stats?.time("Page Request");
-      this._pumpOperatorList({ ...intentArgs, inversionPromise });
+      this._pumpOperatorList(intentArgs);
     }
     return intentState.opListReadCapability.promise;
   }
@@ -1901,8 +1917,6 @@ class PDFPageProxy {
     cacheKey,
     annotationStorageSerializable,
     modifiedIds,
-    invertImages,
-    inversionPromise = null,
   }) {
     if (typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING")) {
       assert(
@@ -1922,7 +1936,6 @@ class PDFPageProxy {
           cacheKey,
           annotationStorage: map,
           modifiedIds,
-          invertImages: invertImages === true,
         },
         transfer
       );
@@ -1973,14 +1986,7 @@ class PDFPageProxy {
       pump();
     };
 
-    if (inversionPromise) {
-      inversionPromise.then(startPump, reason => {
-        warn(`_pumpOperatorList: Failed to clear image caches: ${reason}`);
-        startPump();
-      });
-    } else {
-      startPump();
-    }
+    startPump();
   }
 
   /**
@@ -2427,10 +2433,6 @@ class WorkerTransport {
 
   #fullReader = null;
 
-  #imageInversion = null;
-
-  #imageInversionPromise = null;
-
   #methodPromises = new Map();
 
   #networkStream = null;
@@ -2533,70 +2535,6 @@ class WorkerTransport {
     });
   }
 
-  #isImageData(data) {
-    return (
-      data &&
-      typeof data === "object" &&
-      typeof data.width === "number" &&
-      typeof data.height === "number" &&
-      (typeof data.dataLen === "number" || data.bitmap || data.data)
-    );
-  }
-
-  ensureImageInversion(invertImages = false) {
-    const normalized = invertImages === true;
-    if (this.#imageInversion === null) {
-      this.#imageInversion = normalized;
-      return null;
-    }
-    if (this.#imageInversion === normalized) {
-      return this.#imageInversionPromise;
-    }
-    this.#imageInversion = normalized;
-    const promise = this.clearImageCaches();
-    this.#imageInversionPromise = promise.finally(() => {
-      if (this.#imageInversionPromise === promise) {
-        this.#imageInversionPromise = null;
-      }
-    });
-    return this.#imageInversionPromise;
-  }
-
-  async clearImageCaches() {
-    if (this.destroyed) {
-      return;
-    }
-    const cancelReason = new RenderingCancelledException(
-      "Image caches cleared.",
-      0
-    );
-    for (const page of this.#pageCache.values()) {
-      for (const intentState of page._intentStates.values()) {
-        const { renderTasks, operatorList } = intentState;
-        if (renderTasks?.size) {
-          for (const internalRenderTask of renderTasks) {
-            internalRenderTask.cancel(cancelReason);
-          }
-        }
-        if (!operatorList?.lastChunk) {
-          page._abortOperatorList({
-            intentState,
-            reason: cancelReason,
-            force: true,
-          });
-        }
-      }
-      page._intentStates.clear();
-      page.objs.clear(data => this.#isImageData(data));
-    }
-    this.commonObjs.clear(data => this.#isImageData(data));
-    try {
-      await this.messageHandler.sendWithPromise("ClearImageCaches", null);
-    } catch (reason) {
-      warn(`clearImageCaches: "${reason}".`);
-    }
-  }
-
   get annotationStorage() {
     return shadow(this, "annotationStorage", new AnnotationStorage());
   }
@@ -2606,8 +2544,7 @@ class WorkerTransport {
     annotationMode = AnnotationMode.ENABLE,
     printAnnotationStorage = null,
     isEditing = false,
-    isOpList = false,
-    invertImages = false
+    isOpList = false
   ) {
     let renderingIntent = RenderingIntentFlag.DISPLAY; // Default value.
     let annotationStorageSerializable = SerializableEmpty;
@@ -2663,7 +2600,6 @@ class WorkerTransport {
       renderingIntent,
       annotationStorageSerializable.hash,
       modifiedIdsHash,
-      invertImages === true ? 1 : 0,
     ];
 
     return {
@@ -2671,7 +2607,6 @@ class WorkerTransport {
       cacheKey: cacheKeyBuf.join("_"),
       annotationStorageSerializable,
       modifiedIds,
-      invertImages: invertImages === true,
     };
   }
 

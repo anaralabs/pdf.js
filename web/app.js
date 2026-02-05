@@ -98,6 +98,12 @@ import { ViewHistory } from "./view_history.js";
 import { ViewsManager } from "web-views_manager";
 
 const FORCE_PAGES_LOADED_TIMEOUT = 10000; // ms
+function getRenderThemeColors() {
+  return {
+    background: AppOptions.get("renderThemeBackground"),
+    foreground: AppOptions.get("renderThemeForeground"),
+  };
+}
 
 const ViewOnLoad = {
   UNKNOWN: -1,
@@ -466,11 +472,12 @@ const PDFViewerApplication = {
           foreground: AppOptions.get("pageColorsForeground"),
         }
       : null;
+    const { background, foreground } = getRenderThemeColors();
     const renderTheme =
       !hasForcedColors && AppOptions.get("enableRenderTheme")
         ? {
-            background: AppOptions.get("renderThemeBackground"),
-            foreground: AppOptions.get("renderThemeForeground"),
+            background,
+            foreground,
             selection: AppOptions.get("renderThemeSelection"),
             invertImages: AppOptions.get("renderThemeInvertImages"),
           }
@@ -2081,11 +2088,12 @@ const PDFViewerApplication = {
     const hasForcedColors =
       AppOptions.get("forcePageColors") ||
       window.matchMedia("(forced-colors: active)").matches;
+    const { background, foreground } = getRenderThemeColors();
     const renderTheme =
       !hasForcedColors && enableRenderTheme
         ? {
-            background: AppOptions.get("renderThemeBackground"),
-            foreground: AppOptions.get("renderThemeForeground"),
+            background,
+            foreground,
             selection: AppOptions.get("renderThemeSelection"),
             invertImages: AppOptions.get("renderThemeInvertImages"),
           }
@@ -2115,10 +2123,11 @@ const PDFViewerApplication = {
       window.matchMedia("(forced-colors: active)").matches;
     const renderThemeAvailable =
       !hasForcedColors && AppOptions.get("enableRenderTheme");
+    const { background, foreground } = getRenderThemeColors();
     const renderTheme = renderThemeAvailable
       ? {
-          background: AppOptions.get("renderThemeBackground"),
-          foreground: AppOptions.get("renderThemeForeground"),
+          background,
+          foreground,
           selection: AppOptions.get("renderThemeSelection"),
           invertImages,
         }

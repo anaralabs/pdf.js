@@ -132,8 +132,8 @@ const LAYERS_ORDER = new Map([
 ]);
 
 const DEFAULT_RENDER_THEME = {
-  background: "#121212",
-  foreground: "#E6E6E6",
+  background: "#171717",
+  foreground: "#E8E8E8",
 };
 
 class PDFPageView extends BasePDFPageView {
