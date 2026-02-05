@@ -71,8 +71,14 @@
   }
 
   .highlight {
-    --highlight-bg-color: rgb(180 0 170 / 0.25);
-    --highlight-selected-bg-color: rgb(0 100 0 / 0.25);
+    --highlight-bg-color: var(
+      --render-theme-highlight,
+      rgb(180 0 170 / 0.25)
+    );
+    --highlight-selected-bg-color: var(
+      --render-theme-highlight-selected,
+      rgb(0 100 0 / 0.25)
+    );
     --highlight-backdrop-filter: none;
     --highlight-selected-backdrop-filter: none;
 

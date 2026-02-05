@@ -111,6 +111,20 @@
   }
 }
 
+.pdfViewer.renderTheme,
+.renderTheme {
+  --render-theme-highlight: color-mix(
+    in srgb,
+    var(--render-theme-selection, #2B5D9A) 35%,
+    transparent
+  );
+  --render-theme-highlight-selected: color-mix(
+    in srgb,
+    var(--render-theme-selection, #2B5D9A) 55%,
+    transparent
+  );
+}
+
 .pdfViewer .page {
   --user-unit: 1;
   --total-scale-factor: calc(var(--scale-factor) * var(--user-unit));

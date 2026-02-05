@@ -61,6 +61,8 @@ const SPACE_FOR_DRAG_MARKER_WHEN_NO_NEXT_ELEMENT = 15;
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
+ * @property {Object} [renderTheme] - Apply a theme transform during rendering
+ *   (e.g. native dark mode) by mapping colors while keeping images intact.
  * @property {AbortSignal} [abortSignal] - The AbortSignal for the window
  *   events.
  * @property {boolean} [enableHWA] - Enables hardware acceleration for
@@ -124,6 +126,7 @@ class PDFThumbnailViewer {
     maxCanvasPixels,
     maxCanvasDim,
     pageColors,
+    renderTheme,
     abortSignal,
     enableHWA,
     enableSplitMerge,
@@ -137,6 +140,7 @@ class PDFThumbnailViewer {
     this.maxCanvasPixels = maxCanvasPixels;
     this.maxCanvasDim = maxCanvasDim;
     this.pageColors = pageColors || null;
+    this.renderTheme = renderTheme || null;
     this.enableHWA = enableHWA || false;
     this.#enableSplitMerge = enableSplitMerge || false;
 
@@ -298,6 +302,7 @@ class PDFThumbnailViewer {
             maxCanvasPixels: this.maxCanvasPixels,
             maxCanvasDim: this.maxCanvasDim,
             pageColors: this.pageColors,
+            renderTheme: this.renderTheme,
             enableHWA: this.enableHWA,
             enableSplitMerge: this.#enableSplitMerge,
           });
@@ -345,6 +350,14 @@ class PDFThumbnailViewer {
     for (let i = 0, ii = this._thumbnails.length; i < ii; i++) {
       this._thumbnails[i].setPageLabel(this._pageLabels?.[i] ?? null);
     }
+  }
+
+  setRenderTheme(renderTheme) {
+    this.renderTheme = renderTheme || null;
+    for (const thumbnail of this._thumbnails) {
+      thumbnail.update({ renderTheme: this.renderTheme });
+    }
+    this.forceRendering();
   }
 
   /**

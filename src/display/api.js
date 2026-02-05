@@ -86,6 +86,8 @@ import { TextLayer } from "./text_layer.js";
 import { XfaText } from "./xfa_text.js";
 
 const RENDERING_CANCELLED_TIMEOUT = 100; // ms
+const DEFAULT_IMAGE_INVERT_FILTER =
+  "brightness(80%) contrast(200%) invert(91%) hue-rotate(180deg)";
 
 /**
  * @typedef { Int8Array | Uint8Array | Uint8ClampedArray |
@@ -1244,6 +1246,19 @@ class PDFDocumentProxy {
  *
  *   NOTE: This option may be partially, or completely, ignored when the
  *   `pageColors`-option is used.
+ * @property {Object} [renderTheme] - Apply a theme transform during rendering
+ *   (e.g. native dark mode) by mapping colors while keeping images intact.
+ *   Alpha channels are ignored and treated as opaque.
+ * @property {string} [renderTheme.background] - Theme background color.
+ * @property {string} [renderTheme.foreground] - Theme foreground color.
+ * @property {string} [renderTheme.selection] - Theme selection/highlight color.
+ * @property {string | boolean} [renderTheme.imageFilter] - Optional CSS filter
+ *   to apply to images when `invertImages` is enabled. Use a filter string
+ *   (e.g. `invert(100%) hue-rotate(180deg)`) or `true`/`"auto"` to derive one
+ *   from the theme colors. If omitted while `invertImages` is enabled, a
+ *   built-in default filter is used.
+ * @property {boolean} [invertImages] - Apply an image-only CSS filter during
+ *   rendering to invert colors. Useful for dark mode in image-heavy documents.
  * @property {Object} [pageColors] - Overwrites background and foreground colors
  *   with user defined ones in order to improve readability in high contrast
  *   mode.
@@ -1286,6 +1301,8 @@ class PDFDocumentProxy {
  *      (as above) but where interactive form elements are updated with data
  *      from the {@link AnnotationStorage}-instance; useful e.g. for printing.
  *   The default value is `AnnotationMode.ENABLE`.
+ * @property {boolean} [invertImages] - Ignored in the display layer; image
+ *   inversion is handled via CSS filters during rendering.
  * @property {PrintAnnotationStorage} [printAnnotationStorage]
  * @property {boolean} [isEditing] - Render the page in editing mode.
  */
@@ -1465,6 +1482,8 @@ class PDFPageProxy {
     annotationMode = AnnotationMode.ENABLE,
     transform = null,
     background = null,
+    renderTheme = null,
+    invertImages = renderTheme?.invertImages ?? false,
     optionalContentConfigPromise = null,
     annotationCanvasMap = null,
     pageColors = null,
@@ -1475,11 +1494,29 @@ class PDFPageProxy {
   }) {
     this._stats?.time("Overall");
 
+    const imageFilter = renderTheme?.imageFilter;
+    const shouldApplyImageFilter = invertImages === true;
+    if (shouldApplyImageFilter) {
+      if (!renderTheme) {
+        renderTheme = {};
+      }
+      if (imageFilter === undefined) {
+        renderTheme = {
+          ...renderTheme,
+          imageFilter: DEFAULT_IMAGE_INVERT_FILTER,
+        };
+      }
+    } else if (renderTheme && imageFilter !== undefined) {
+      renderTheme = { ...renderTheme };
+      delete renderTheme.imageFilter;
+    }
+
     const intentArgs = this._transport.getRenderingIntent(
       intent,
       annotationMode,
       printAnnotationStorage,
-      isEditing
+      isEditing,
+      /* isOpList = */ false
     );
     const { renderingIntent, cacheKey } = intentArgs;
     // If there was a pending destroy, cancel it so no cleanup happens during
@@ -1587,6 +1624,7 @@ class PDFPageProxy {
         viewport,
         transform,
         background,
+        renderTheme,
       },
       objs: this.objs,
       commonObjs: this.commonObjs,
@@ -1598,6 +1636,7 @@ class PDFPageProxy {
       useRequestAnimationFrame: !intentPrint,
       pdfBug: this._pdfBug,
       pageColors,
+      renderTheme,
       enableHWA: this._transport.enableHWA,
       operationsFilter,
     });
@@ -1887,63 +1926,67 @@ class PDFPageProxy {
     }
     const { map, transfer } = annotationStorageSerializable;
 
-    const readableStream = this._transport.messageHandler.sendWithStream(
-      "GetOperatorList",
-      {
-        pageId: this.#pagesMapper.getPageId(this._pageIndex + 1) - 1,
-        pageIndex: this._pageIndex,
-        intent: renderingIntent,
-        cacheKey,
-        annotationStorage: map,
-        modifiedIds,
-      },
-      transfer
-    );
-    const reader = readableStream.getReader();
-
-    const intentState = this._intentStates.get(cacheKey);
-    intentState.streamReader = reader;
-
-    const pump = () => {
-      reader.read().then(
-        ({ value, done }) => {
-          if (done) {
-            intentState.streamReader = null;
-            return;
-          }
-          if (this._transport.destroyed) {
-            return; // Ignore any pending requests if the worker was terminated.
-          }
-          this._renderPageChunk(value, intentState);
-          pump();
+    const startPump = () => {
+      const readableStream = this._transport.messageHandler.sendWithStream(
+        "GetOperatorList",
+        {
+          pageId: this.#pagesMapper.getPageId(this._pageIndex + 1) - 1,
+          pageIndex: this._pageIndex,
+          intent: renderingIntent,
+          cacheKey,
+          annotationStorage: map,
+          modifiedIds,
         },
-        reason => {
-          intentState.streamReader = null;
-
-          if (this._transport.destroyed) {
-            return; // Ignore any pending requests if the worker was terminated.
-          }
-          if (intentState.operatorList) {
-            // Mark operator list as complete.
-            intentState.operatorList.lastChunk = true;
-
-            for (const internalRenderTask of intentState.renderTasks) {
-              internalRenderTask.operatorListChanged();
-            }
-            this.#tryCleanup();
-          }
-
-          if (intentState.displayReadyCapability) {
-            intentState.displayReadyCapability.reject(reason);
-          } else if (intentState.opListReadCapability) {
-            intentState.opListReadCapability.reject(reason);
-          } else {
-            throw reason;
-          }
-        }
+        transfer
       );
+      const reader = readableStream.getReader();
+
+      const intentState = this._intentStates.get(cacheKey);
+      intentState.streamReader = reader;
+
+      const pump = () => {
+        reader.read().then(
+          ({ value, done }) => {
+            if (done) {
+              intentState.streamReader = null;
+              return;
+            }
+            if (this._transport.destroyed) {
+              return; // Ignore any pending requests if the worker was terminated.
+            }
+            this._renderPageChunk(value, intentState);
+            pump();
+          },
+          reason => {
+            intentState.streamReader = null;
+
+            if (this._transport.destroyed) {
+              return; // Ignore any pending requests if the worker was terminated.
+            }
+            if (intentState.operatorList) {
+              // Mark operator list as complete.
+              intentState.operatorList.lastChunk = true;
+
+              for (const internalRenderTask of intentState.renderTasks) {
+                internalRenderTask.operatorListChanged();
+              }
+              this.#tryCleanup();
+            }
+
+            if (intentState.displayReadyCapability) {
+              intentState.displayReadyCapability.reject(reason);
+            } else if (intentState.opListReadCapability) {
+              intentState.opListReadCapability.reject(reason);
+            } else {
+              throw reason;
+            }
+          }
+        );
+      };
+      pump();
     };
-    pump();
+
+    startPump();
   }
 
   /**
@@ -3239,6 +3282,7 @@ class InternalRenderTask {
     useRequestAnimationFrame = false,
     pdfBug = false,
     pageColors = null,
+    renderTheme = null,
     enableHWA = false,
     operationsFilter = null,
   }) {
@@ -3254,6 +3298,7 @@ class InternalRenderTask {
     this.filterFactory = filterFactory;
     this._pdfBug = pdfBug;
     this.pageColors = pageColors;
+    this.renderTheme = renderTheme;
 
     this.running = false;
     this.graphicsReadyCallback = null;
@@ -3322,6 +3367,7 @@ class InternalRenderTask {
       { optionalContentConfig },
       this.annotationCanvasMap,
       this.pageColors,
+      this.renderTheme,
       dependencyTracker
     );
     this.gfx.beginDrawing({

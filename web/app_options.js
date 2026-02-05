@@ -348,6 +348,31 @@ const defaultOptions = {
     value: "CanvasText",
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
+  enableRenderTheme: {
+    /** @type {boolean} */
+    value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  renderThemeBackground: {
+    /** @type {string} */
+    value: "#171717",
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  renderThemeForeground: {
+    /** @type {string} */
+    value: "#E8E8E8",
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  renderThemeSelection: {
+    /** @type {string} */
+    value: "#2B5D9A",
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  renderThemeInvertImages: {
+    /** @type {boolean} */
+    value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
   pdfBugEnabled: {
     /** @type {boolean} */
     value: typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING"),

@@ -98,6 +98,12 @@ import { ViewHistory } from "./view_history.js";
 import { ViewsManager } from "web-views_manager";
 
 const FORCE_PAGES_LOADED_TIMEOUT = 10000; // ms
+function getRenderThemeColors() {
+  return {
+    background: AppOptions.get("renderThemeBackground"),
+    foreground: AppOptions.get("renderThemeForeground"),
+  };
+}
 
 const ViewOnLoad = {
   UNKNOWN: -1,
@@ -386,6 +392,11 @@ const PDFViewerApplication = {
         forcePageColors: x => x === "true",
         pageColorsBackground: x => x,
         pageColorsForeground: x => x,
+        enableRenderTheme: x => x === "true",
+        renderThemeBackground: x => x,
+        renderThemeForeground: x => x,
+        renderThemeSelection: x => x,
+        renderThemeInvertImages: x => x === "true",
         sidebarViewOnLoad: x => parseInt(x),
       });
     }
@@ -461,6 +472,16 @@ const PDFViewerApplication = {
           foreground: AppOptions.get("pageColorsForeground"),
         }
       : null;
+    const { background, foreground } = getRenderThemeColors();
+    const renderTheme =
+      !hasForcedColors && AppOptions.get("enableRenderTheme")
+        ? {
+            background,
+            foreground,
+            selection: AppOptions.get("renderThemeSelection"),
+            invertImages: AppOptions.get("renderThemeInvertImages"),
+          }
+        : null;
 
     let altTextManager;
     if (AppOptions.get("enableUpdatedAddImage")) {
@@ -579,6 +600,7 @@ const PDFViewerApplication = {
         "enableOptimizedPartialRendering"
       ),
       pageColors,
+      renderTheme,
       mlManager,
       abortSignal,
       enableHWA,
@@ -600,6 +622,7 @@ const PDFViewerApplication = {
         maxCanvasPixels,
         maxCanvasDim,
         pageColors,
+        renderTheme,
         abortSignal,
         enableHWA,
         enableSplitMerge: AppOptions.get("enableSplitMerge"),
@@ -694,6 +717,23 @@ const PDFViewerApplication = {
           AppOptions.get("toolbarDensity")
         );
       }
+    }
+    if (this.toolbar) {
+      eventBus.dispatch("renderthemechanged", {
+        source: this,
+        enabled: AppOptions.get("enableRenderTheme"),
+      });
+      const hasForcedColorsOnLoad =
+        AppOptions.get("forcePageColors") ||
+        window.matchMedia("(forced-colors: active)").matches;
+      const renderThemeAvailable =
+        !hasForcedColorsOnLoad && AppOptions.get("enableRenderTheme");
+      eventBus.dispatch("renderthemeinvertimageschanged", {
+        source: this,
+        enabled:
+          renderThemeAvailable && AppOptions.get("renderThemeInvertImages"),
+        available: renderThemeAvailable,
+      });
     }
 
     if (appConfig.secondaryToolbar) {
@@ -2041,6 +2081,67 @@ const PDFViewerApplication = {
     // in the 'rotationchanging' event handler.
   },
 
+  toggleRenderTheme() {
+    const enableRenderTheme = !AppOptions.get("enableRenderTheme");
+    this.preferences.set("enableRenderTheme", enableRenderTheme);
+
+    const hasForcedColors =
+      AppOptions.get("forcePageColors") ||
+      window.matchMedia("(forced-colors: active)").matches;
+    const { background, foreground } = getRenderThemeColors();
+    const renderTheme =
+      !hasForcedColors && enableRenderTheme
+        ? {
+            background,
+            foreground,
+            selection: AppOptions.get("renderThemeSelection"),
+            invertImages: AppOptions.get("renderThemeInvertImages"),
+          }
+        : null;
+
+    this.pdfViewer?.setRenderTheme(renderTheme);
+    this.pdfThumbnailViewer?.setRenderTheme(renderTheme);
+    this.eventBus.dispatch("renderthemechanged", {
+      source: this,
+      enabled: enableRenderTheme,
+    });
+    const renderThemeAvailable = !hasForcedColors && enableRenderTheme;
+    this.eventBus.dispatch("renderthemeinvertimageschanged", {
+      source: this,
+      enabled:
+        renderThemeAvailable && AppOptions.get("renderThemeInvertImages"),
+      available: renderThemeAvailable,
+    });
+  },
+
+  toggleRenderThemeInvertImages() {
+    const invertImages = !AppOptions.get("renderThemeInvertImages");
+    this.preferences.set("renderThemeInvertImages", invertImages);
+
+    const hasForcedColors =
+      AppOptions.get("forcePageColors") ||
+      window.matchMedia("(forced-colors: active)").matches;
+    const renderThemeAvailable =
+      !hasForcedColors && AppOptions.get("enableRenderTheme");
+    const { background, foreground } = getRenderThemeColors();
+    const renderTheme = renderThemeAvailable
+      ? {
+          background,
+          foreground,
+          selection: AppOptions.get("renderThemeSelection"),
+          invertImages,
+        }
+      : null;
+
+    this.pdfViewer?.setRenderTheme(renderTheme);
+    this.pdfThumbnailViewer?.setRenderTheme(renderTheme);
+    this.eventBus.dispatch("renderthemeinvertimageschanged", {
+      source: this,
+      enabled: renderThemeAvailable && invertImages,
+      available: renderThemeAvailable,
+    });
+  },
+
   requestPresentationMode() {
     this.pdfPresentationMode?.request();
   },
@@ -2103,6 +2204,12 @@ const PDFViewerApplication = {
     eventBus._on("zoomin", this.zoomIn.bind(this), opts);
     eventBus._on("zoomout", this.zoomOut.bind(this), opts);
     eventBus._on("zoomreset", this.zoomReset.bind(this), opts);
+    eventBus._on("rendertheme", this.toggleRenderTheme.bind(this), opts);
+    eventBus._on(
+      "renderthemeinvertimages",
+      this.toggleRenderThemeInvertImages.bind(this),
+      opts
+    );
     eventBus._on("pagenumberchanged", onPageNumberChanged.bind(this), opts);
     eventBus._on(
       "scalechanged",

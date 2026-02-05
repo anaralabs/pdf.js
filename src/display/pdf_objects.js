@@ -102,12 +102,26 @@ class PDFObjects {
     obj.resolve();
   }
 
-  clear() {
-    for (const objId in this.#objs) {
-      const { data } = this.#objs[objId];
-      data?.bitmap?.close(); // Release any `ImageBitmap` data.
+  clear(predicate = null) {
+    if (!predicate) {
+      for (const objId in this.#objs) {
+        const { data } = this.#objs[objId];
+        data?.bitmap?.close(); // Release any `ImageBitmap` data.
+      }
+      this.#objs = Object.create(null);
+      return;
     }
-    this.#objs = Object.create(null);
+    for (const objId in this.#objs) {
+      const obj = this.#objs[objId];
+      if (!obj || obj.data === INITIAL_DATA) {
+        continue;
+      }
+      if (!predicate(obj.data)) {
+        continue;
+      }
+      obj.data?.bitmap?.close(); // Release any `ImageBitmap` data.
+      delete this.#objs[objId];
+    }
   }
 
   *[Symbol.iterator]() {

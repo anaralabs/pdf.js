@@ -83,7 +83,7 @@ class RadialAxialShadingPattern extends BaseShadingPattern {
     return this._type === "radial";
   }
 
-  _createGradient(ctx, transform = null) {
+  _createGradient(ctx, transform = null, owner = null) {
     let grad;
     let firstPoint = this._p0;
     let secondPoint = this._p1;
@@ -120,7 +120,10 @@ class RadialAxialShadingPattern extends BaseShadingPattern {
     }
 
     for (const colorStop of this._colorStops) {
-      grad.addColorStop(colorStop[0], colorStop[1]);
+      const color = owner?.getThemedColor
+        ? owner.getThemedColor(colorStop[1])
+        : colorStop[1];
+      grad.addColorStop(colorStop[0], color);
     }
     return grad;
   }
@@ -144,12 +147,12 @@ class RadialAxialShadingPattern extends BaseShadingPattern {
             // circles are transformed to circles and we can use a gradient
             // directly.
             if (Math.abs(n1 - n2) < precision) {
-              return this._createGradient(ctx, transf);
+              return this._createGradient(ctx, transf, owner);
             }
           } else {
             // The rectangles are transformed to rectangles and we can use a
             // gradient directly.
-            return this._createGradient(ctx, transf);
+            return this._createGradient(ctx, transf, owner);
           }
         }
       }
@@ -193,7 +196,7 @@ class RadialAxialShadingPattern extends BaseShadingPattern {
       }
       applyBoundingBox(tmpCtx, this._bbox);
 
-      tmpCtx.fillStyle = this._createGradient(tmpCtx);
+      tmpCtx.fillStyle = this._createGradient(tmpCtx, null, owner);
       tmpCtx.fill();
 
       pattern = ctx.createPattern(tmpCanvas.canvas, "no-repeat");
@@ -204,7 +207,7 @@ class RadialAxialShadingPattern extends BaseShadingPattern {
       // how canvas gradients work, so there's no need to do anything special
       // here.
       applyBoundingBox(ctx, this._bbox);
-      pattern = this._createGradient(ctx);
+      pattern = this._createGradient(ctx, null, owner);
     }
     return pattern;
   }
@@ -380,9 +383,30 @@ class MeshShadingPattern extends BaseShadingPattern {
     this._bbox = IR[6];
     this._background = IR[7];
     this.matrix = null;
+    this._themedColors = null;
   }
 
-  _createMeshCanvas(combinedScale, backgroundColor, cachedCanvases) {
+  _getColors(owner) {
+    const themeKey = owner?.getRenderThemeKey?.();
+    if (!themeKey) {
+      return this._colors;
+    }
+    if (this._themedColors?.key === themeKey) {
+      return this._themedColors.colors;
+    }
+    const src = this._colors;
+    const colors = new Uint8Array(src.length);
+    for (let i = 0, ii = src.length; i < ii; i += 3) {
+      const themed = owner.getThemedRgb(src[i], src[i + 1], src[i + 2]);
+      colors[i] = themed[0];
+      colors[i + 1] = themed[1];
+      colors[i + 2] = themed[2];
+    }
+    this._themedColors = { key: themeKey, colors };
+    return colors;
+  }
+
+  _createMeshCanvas(combinedScale, backgroundColor, cachedCanvases, owner) {
     // we will increase scale on some weird factor to let antialiasing take
     // care of "rough" edges
     const EXPECTED_SCALE = 1.1;
@@ -408,9 +432,19 @@ class MeshShadingPattern extends BaseShadingPattern {
     const scaleX = boundsWidth / width;
     const scaleY = boundsHeight / height;
 
+    let themedBackground = backgroundColor;
+    if (backgroundColor && owner?.getRenderThemeKey?.()) {
+      const themed = owner.getThemedRgb(
+        backgroundColor[0],
+        backgroundColor[1],
+        backgroundColor[2]
+      );
+      themedBackground = [themed[0], themed[1], themed[2]];
+    }
+
     const context = {
       coords: this._coords,
-      colors: this._colors,
+      colors: this._getColors(owner),
       offsetX: -offsetX,
       offsetY: -offsetY,
       scaleX: 1 / scaleX,
@@ -428,12 +462,12 @@ class MeshShadingPattern extends BaseShadingPattern {
     const tmpCtx = tmpCanvas.context;
 
     const data = tmpCtx.createImageData(width, height);
-    if (backgroundColor) {
+    if (themedBackground) {
       const bytes = data.data;
       for (let i = 0, ii = bytes.length; i < ii; i += 4) {
-        bytes[i] = backgroundColor[0];
-        bytes[i + 1] = backgroundColor[1];
-        bytes[i + 2] = backgroundColor[2];
+        bytes[i] = themedBackground[0];
+        bytes[i + 1] = themedBackground[1];
+        bytes[i + 2] = themedBackground[2];
         bytes[i + 3] = 255;
       }
     }
@@ -477,7 +511,8 @@ class MeshShadingPattern extends BaseShadingPattern {
     const temporaryPatternCanvas = this._createMeshCanvas(
       scale,
       pathType === PathType.SHADING ? null : this._background,
-      owner.cachedCanvases
+      owner.cachedCanvases,
+      owner
     );
 
     if (pathType !== PathType.SHADING) {
@@ -773,9 +808,12 @@ class TilingPattern {
         context.strokeStyle = current.strokeColor = strokeStyle;
         break;
       case PaintType.UNCOLORED:
-        context.fillStyle = context.strokeStyle = color;
+        const themedColor = graphics.getThemedColor
+          ? graphics.getThemedColor(color)
+          : color;
+        context.fillStyle = context.strokeStyle = themedColor;
         // Set color needed by image masks (fixes issues 3226 and 8741).
-        current.fillColor = current.strokeColor = color;
+        current.fillColor = current.strokeColor = themedColor;
         break;
       default:
         throw new FormatError(`Unsupported paint type: ${paintType}`);
