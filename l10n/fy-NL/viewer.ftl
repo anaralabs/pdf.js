@@ -207,10 +207,6 @@ pdfjs-thumb-page-checkbox1 =
     .title = Side { $page } selektearje
 # Variables:
 #   $page (Number) - the page number
-pdfjs-thumb-page-checkbox =
-    .aria-label = Side { $page } selektearje
-# Variables:
-#   $page (Number) - the page number
 #   $total (Number) - the number of pages
 pdfjs-thumb-page-title1 =
     .title = Side { $page } fan { $total }
@@ -654,12 +650,9 @@ pdfjs-editor-add-comment-button =
 ##  - layers.
 ## The thumbnails view is used to edit the pdf: remove/insert pages, ...
 
-pdfjs-toggle-views-manager-button =
-    .title = Sidebalke yn-/útskeakelje
 pdfjs-toggle-views-manager-notification-button =
     .title = Sidebalke yn-/útskeakelje (dokumint befettet miniatueren/oersjoch/bylagen/lagen)
 pdfjs-toggle-views-manager-button1-label = Siden beheare
-pdfjs-toggle-views-manager-button-label = Sidebalke yn-/útskeakelje
 pdfjs-views-manager-sidebar =
     .aria-label = Sidebalke
 pdfjs-views-manager-sidebar-resizer =
@@ -668,9 +661,11 @@ pdfjs-views-manager-view-selector-button =
     .title = Werjeften
 pdfjs-views-manager-view-selector-button-label = Werjeften
 pdfjs-views-manager-pages-title = Siden
-pdfjs-views-manager-outlines-title = Dokumintoersjoch
+pdfjs-views-manager-outlines-title1 = Dokumintoersjoch
+    .title = Dokumintoersjoch (dûbelklik om alle items út/yn te klappen)
 pdfjs-views-manager-attachments-title = Bylagen
-pdfjs-views-manager-layers-title = Lagen
+pdfjs-views-manager-layers-title1 = Lagen
+    .title = Lagen (dûbelklik om alle lagen nei de standertstatus werom te setten)
 pdfjs-views-manager-pages-option-label = Siden
 pdfjs-views-manager-outlines-option-label = Dokumintoersjoch
 pdfjs-views-manager-attachments-option-label = Bylagen
@@ -690,7 +685,7 @@ pdfjs-views-manager-pages-status-action-button-label = Beheare
 pdfjs-views-manager-pages-status-copy-button-label = Kopiearje
 pdfjs-views-manager-pages-status-cut-button-label = Knippe
 pdfjs-views-manager-pages-status-delete-button-label = Fuortsmite
-pdfjs-views-manager-pages-status-save-as-button-label = Bewarje as…
+pdfjs-views-manager-pages-status-export-selected-button-label = Selektearre eksportearje…
 # Variables:
 #   $count (Number) - the number of selected pages to be cut.
 pdfjs-views-manager-status-undo-cut-label =
@@ -719,10 +714,21 @@ pdfjs-views-manager-status-warning-copy-label = Kin net kopiearje. Ferfarskje de
 pdfjs-views-manager-status-warning-delete-label = Kin net fuortsmite. Ferfarskje de side en probearje it opnij.
 pdfjs-views-manager-status-warning-save-label = Kin net bewarje. Ferfarskje de side en probearje it opnij.
 pdfjs-views-manager-status-undo-button-label = Ungedien meitsje
+pdfjs-views-manager-status-done-button-label = Dien
 pdfjs-views-manager-status-close-button =
     .title = Slute
 pdfjs-views-manager-status-close-button-label = Slute
 pdfjs-views-manager-paste-button-label = Plakke
+pdfjs-views-manager-paste-button-before =
+    .title = Plakke foar de earste side
+# Variables:
+#   $page (Number) - the page number after which the paste button is.
+pdfjs-views-manager-paste-button-after =
+    .title = Plakke nei side { $page }
+# Badge used to promote a new feature in the UI, keep it as short as possible.
+# It's spelled uppercase for English, but it can be translated as usual.
+pdfjs-new-badge-content = NIJ
+pdfjs-views-manager-waiting-for-file = Bestân oplade…
 pdfjs-toggle-views-manager-button1 =
     .title = Siden beheare
 

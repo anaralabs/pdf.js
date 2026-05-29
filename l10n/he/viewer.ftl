@@ -207,10 +207,6 @@ pdfjs-thumb-page-checkbox1 =
     .title = בחירת עמוד { $page }
 # Variables:
 #   $page (Number) - the page number
-pdfjs-thumb-page-checkbox =
-    .aria-label = בחירת עמוד { $page }
-# Variables:
-#   $page (Number) - the page number
 #   $total (Number) - the number of pages
 pdfjs-thumb-page-title1 =
     .title = עמוד { $page } מתוך { $total }
@@ -654,12 +650,9 @@ pdfjs-editor-add-comment-button =
 ##  - layers.
 ## The thumbnails view is used to edit the pdf: remove/insert pages, ...
 
-pdfjs-toggle-views-manager-button =
-    .title = החלפת תצוגת סרגל צד
 pdfjs-toggle-views-manager-notification-button =
     .title = החלפת תצוגת סרגל צד (מסמך שמכיל תמונות ממוזערות/תוכן עניינים/קבצים מצורפים/שכבות)
 pdfjs-toggle-views-manager-button1-label = ניהול עמודים
-pdfjs-toggle-views-manager-button-label = החלפת תצוגת סרגל צד
 pdfjs-views-manager-sidebar =
     .aria-label = סרגל צד
 pdfjs-views-manager-sidebar-resizer =
@@ -668,9 +661,11 @@ pdfjs-views-manager-view-selector-button =
     .title = תצוגות
 pdfjs-views-manager-view-selector-button-label = תצוגות
 pdfjs-views-manager-pages-title = עמודים
-pdfjs-views-manager-outlines-title = תוכן העניינים של המסמך
+pdfjs-views-manager-outlines-title1 = תוכן העניינים של המסמך
+    .title = הצגת תוכן העניינים של המסמך (יש ללחוץ לחיצה כפולה כדי להרחיב או לצמצם את כל הפריטים)
 pdfjs-views-manager-attachments-title = קבצים מצורפים
-pdfjs-views-manager-layers-title = שכבות
+pdfjs-views-manager-layers-title1 = שכבות
+    .title = הצגת שכבות (יש ללחוץ לחיצה כפולה כדי לאפס את כל השכבות למצב ברירת המחדל)
 pdfjs-views-manager-pages-option-label = עמודים
 pdfjs-views-manager-outlines-option-label = תוכן העניינים של המסמך
 pdfjs-views-manager-attachments-option-label = קבצים מצורפים
@@ -690,7 +685,7 @@ pdfjs-views-manager-pages-status-action-button-label = ניהול
 pdfjs-views-manager-pages-status-copy-button-label = העתקה
 pdfjs-views-manager-pages-status-cut-button-label = גזירה
 pdfjs-views-manager-pages-status-delete-button-label = מחיקה
-pdfjs-views-manager-pages-status-save-as-button-label = שמירה בשם…
+pdfjs-views-manager-pages-status-export-selected-button-label = ייצוא הפריטים שנבחרו…
 # Variables:
 #   $count (Number) - the number of selected pages to be cut.
 pdfjs-views-manager-status-undo-cut-label =
@@ -719,10 +714,21 @@ pdfjs-views-manager-status-warning-copy-label = לא ניתן היה להעתי�
 pdfjs-views-manager-status-warning-delete-label = לא ניתן היה למחוק. נא לרענן את הדף ולנסות שוב.
 pdfjs-views-manager-status-warning-save-label = לא ניתן היה לשמור. נא לרענן את הדף ולנסות שוב.
 pdfjs-views-manager-status-undo-button-label = ביטול פעולה
+pdfjs-views-manager-status-done-button-label = סיום
 pdfjs-views-manager-status-close-button =
     .title = סגירה
 pdfjs-views-manager-status-close-button-label = סגירה
 pdfjs-views-manager-paste-button-label = הדבקה
+pdfjs-views-manager-paste-button-before =
+    .title = להדביק לפני העמוד הראשון
+# Variables:
+#   $page (Number) - the page number after which the paste button is.
+pdfjs-views-manager-paste-button-after =
+    .title = להדביק אחרי עמוד { $page }
+# Badge used to promote a new feature in the UI, keep it as short as possible.
+# It's spelled uppercase for English, but it can be translated as usual.
+pdfjs-new-badge-content = חדש
+pdfjs-views-manager-waiting-for-file = בתהליך העלאת הקובץ…
 pdfjs-toggle-views-manager-button1 =
     .title = ניהול עמודים
 

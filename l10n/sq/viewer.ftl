@@ -198,10 +198,6 @@ pdfjs-thumb-page-checkbox1 =
     .title = Përzgjidhni faqen { $page }
 # Variables:
 #   $page (Number) - the page number
-pdfjs-thumb-page-checkbox =
-    .aria-label = Përzgjidhni faqen { $page }
-# Variables:
-#   $page (Number) - the page number
 #   $total (Number) - the number of pages
 pdfjs-thumb-page-title1 =
     .title = Faqja { $page } nga { $total } gjithsej
@@ -645,10 +641,9 @@ pdfjs-editor-add-comment-button =
 ##  - layers.
 ## The thumbnails view is used to edit the pdf: remove/insert pages, ...
 
-pdfjs-toggle-views-manager-button =
-    .title = Shfaq/Fshih Anështyllën
+pdfjs-toggle-views-manager-notification-button =
+    .title = Shfaqni/Fshihni Anështyllër (dokumenti përmban miniatura/përvijim/bashkëngjitje/shtresa)
 pdfjs-toggle-views-manager-button1-label = Administroni faqe
-pdfjs-toggle-views-manager-button-label = Shfaq/Fshih Anështyllën
 pdfjs-views-manager-sidebar =
     .aria-label = Anështyllë
 pdfjs-views-manager-sidebar-resizer =
@@ -657,9 +652,9 @@ pdfjs-views-manager-view-selector-button =
     .title = Pamje
 pdfjs-views-manager-view-selector-button-label = Pamje
 pdfjs-views-manager-pages-title = Faqe
-pdfjs-views-manager-outlines-title = Përvijim dokumenti
 pdfjs-views-manager-attachments-title = Bashkëngjitje
-pdfjs-views-manager-layers-title = Shtresa
+pdfjs-views-manager-layers-title1 = Shtresa
+    .title = Shtresa (dyklikoni që të rikthehen krejt shtresat te gjendja parazgjedhje)
 pdfjs-views-manager-pages-option-label = Faqe
 pdfjs-views-manager-outlines-option-label = Përvijim dokumenti
 pdfjs-views-manager-attachments-option-label = Bashkëngjitje
@@ -679,7 +674,14 @@ pdfjs-views-manager-pages-status-action-button-label = Administrojini
 pdfjs-views-manager-pages-status-copy-button-label = Kopjoje
 pdfjs-views-manager-pages-status-cut-button-label = Prije
 pdfjs-views-manager-pages-status-delete-button-label = Fshije
-pdfjs-views-manager-pages-status-save-as-button-label = Ruajeni si…
+pdfjs-views-manager-pages-status-export-selected-button-label = Eksportoni të përzgjedhurit…
+# Variables:
+#   $count (Number) - the number of selected pages to be cut.
+pdfjs-views-manager-status-undo-cut-label =
+    { $count ->
+        [one] Prerje e 1 faqeje
+       *[other] Prerje e { $count } faqesh
+    }
 # Variables:
 #   $count (Number) - the number of selected pages to be copied.
 pdfjs-views-manager-pages-status-undo-copy-label =
@@ -701,10 +703,20 @@ pdfjs-views-manager-status-warning-copy-label = S’u kopjua dot. Rifreskoni faq
 pdfjs-views-manager-status-warning-delete-label = S’u fshi dot. Rifreskoni faqen dhe riprovoni.
 pdfjs-views-manager-status-warning-save-label = S’u ruajt dot. Rifreskoni faqen dhe riprovoni.
 pdfjs-views-manager-status-undo-button-label = Zhbëje
+pdfjs-views-manager-status-done-button-label = U bë
 pdfjs-views-manager-status-close-button =
     .title = Mbylle
 pdfjs-views-manager-status-close-button-label = Mbylle
 pdfjs-views-manager-paste-button-label = Ngjite
+pdfjs-views-manager-paste-button-before =
+    .title = Ngjite para faqes së parë
+# Variables:
+#   $page (Number) - the page number after which the paste button is.
+pdfjs-views-manager-paste-button-after =
+    .title = Ngjite pas faqes { $page }
+# Badge used to promote a new feature in the UI, keep it as short as possible.
+# It's spelled uppercase for English, but it can be translated as usual.
+pdfjs-new-badge-content = E RE
 pdfjs-toggle-views-manager-button1 =
     .title = Administroni faqe
 
