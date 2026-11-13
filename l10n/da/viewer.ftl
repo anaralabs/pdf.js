@@ -153,6 +153,27 @@ pdfjs-document-properties-linearized = Hurtig web-visning:
 pdfjs-document-properties-linearized-yes = Ja
 pdfjs-document-properties-linearized-no = Nej
 pdfjs-document-properties-close-button = Luk
+pdfjs-digital-signature-properties-view-certificate = Vis certifikat
+# Shown beneath an invalid signature card to explain why verification
+# failed. The text comes from NSS (e.g. "Signature integrity has been
+# compromised", "PKCS#7 signature could not be parsed") and is not
+# itself localized — it is the underlying error message produced by
+# the verification backend.
+# Variables:
+#   $reason (String) - error message describing why the signature
+#                      could not be verified.
+pdfjs-digital-signature-properties-reason = Årsag: { $reason }
+# Variables:
+#   $dateObj (Date) - the signing time from the /Sig dict's /M entry.
+pdfjs-digital-signature-properties-timestamp = Tidsstempel: { DATETIME($dateObj, dateStyle: "short", timeStyle: "medium") }
+# Variables:
+#   $count (Number) - number of nested sub-signatures (one per earlier
+#                     incremental revision of the document).
+pdfjs-digital-signature-properties-sub-signatures =
+    { $count ->
+        [one] Under-signatur ({ $count })
+       *[other] Under-signaturer ({ $count })
+    }
 
 ## Print
 
@@ -166,23 +187,6 @@ pdfjs-printing-not-ready = Advarsel: PDF-filen er ikke fuldt indlæst til udskri
 
 ## Tooltips and alt text for side panel toolbar buttons
 
-pdfjs-toggle-sidebar-button =
-    .title = Slå sidepanel til eller fra
-pdfjs-toggle-sidebar-notification-button =
-    .title = Slå sidepanel til eller fra (dokumentet indeholder disposition/vedhæftede filer/lag)
-pdfjs-toggle-sidebar-button-label = Slå sidepanel til eller fra
-pdfjs-document-outline-button =
-    .title = Vis dokumentets disposition (dobbeltklik for at udvide/sammenfolde alle elementer)
-pdfjs-document-outline-button-label = Dokument-disposition
-pdfjs-attachments-button =
-    .title = Vis vedhæftede filer
-pdfjs-attachments-button-label = Vedhæftede filer
-pdfjs-layers-button =
-    .title = Vis lag (dobbeltklik for at nulstille alle lag til standard-tilstanden)
-pdfjs-layers-button-label = Lag
-pdfjs-thumbs-button =
-    .title = Vis miniaturer
-pdfjs-thumbs-button-label = Miniaturer
 pdfjs-current-outline-item-button =
     .title = Find det aktuelle dispositions-element
 pdfjs-current-outline-item-button-label = Aktuelt dispositions-element
@@ -195,18 +199,23 @@ pdfjs-additional-layers = Yderligere lag
 
 # Variables:
 #   $page (Number) - the page number
-pdfjs-thumb-page-title =
-    .title = Side { $page }
-# Variables:
-#   $page (Number) - the page number
 pdfjs-thumb-page-canvas =
     .aria-label = Miniature af side { $page }
+# Variables:
+#   $page (Number) - the page number
+pdfjs-thumb-page-checkbox1 =
+    .title = Vælg side { $page }
+# Variables:
+#   $page (Number) - the page number
+#   $total (Number) - the number of pages
+pdfjs-thumb-page-title1 =
+    .title = Side { $page } af { $total }
 
 ## Find panel button title and messages
 
 pdfjs-find-input =
-    .title = Find
     .placeholder = Find i dokument…
+    .title = Find
 pdfjs-find-previous-button =
     .title = Find den forrige forekomst
 pdfjs-find-previous-button-label = Forrige
@@ -301,16 +310,16 @@ pdfjs-editor-highlight-button =
     .title = Fremhæv
 pdfjs-editor-highlight-button-label = Fremhæv
 pdfjs-highlight-floating-button1 =
-    .title = Fremhæv
     .aria-label = Fremhæv
+    .title = Fremhæv
 pdfjs-highlight-floating-button-label = Fremhæv
 pdfjs-comment-floating-button =
-    .title = Kommenter
     .aria-label = Kommenter
+    .title = Kommenter
 pdfjs-comment-floating-button-label = Kommenter
 pdfjs-editor-comment-button =
-    .title = Kommentar
     .aria-label = Kommentar
+    .title = Kommentar
 pdfjs-editor-comment-button-label = Kommentar
 pdfjs-editor-signature-button =
     .title = Tilføj signatur
@@ -383,8 +392,8 @@ pdfjs-editor-comments-sidebar-title =
        *[other] Kommentarer
     }
 pdfjs-editor-comments-sidebar-close-button =
-    .title = Luk sidepanelet
     .aria-label = Luk sidepanelet
+    .title = Luk sidepanelet
 pdfjs-editor-comments-sidebar-close-button-label = Luk sidepanelet
 # Instructional copy to add a comment by selecting text or an annotations.
 pdfjs-editor-comments-sidebar-no-comments1 = Har du fundet noget interessant? Fremhæv det og gem en kommentar.
@@ -507,13 +516,6 @@ pdfjs-editor-alt-text-settings-dialog-label = Indstillinger for alternativ tekst
 pdfjs-editor-alt-text-settings-automatic-title = Automatisk alternativ tekst
 pdfjs-editor-alt-text-settings-create-model-button-label = Opret alternativ tekst automatisk
 pdfjs-editor-alt-text-settings-create-model-description = Foreslår beskrivelser for at hjælpe folk, der ikke kan se billedet, eller når billedet ikke indlæses.
-# Variables:
-#   $totalSize (Number) - the total size (in MB) of the AI model.
-pdfjs-editor-alt-text-settings-download-model-label = AI-model til at oprette alternative tekster ({ $totalSize } MB)
-pdfjs-editor-alt-text-settings-ai-model-description = Kører lokalt på din enhed, så dine data forbliver private. Påkrævet for at anvende automatisk alternativ tekst.
-pdfjs-editor-alt-text-settings-delete-model-button = Slet
-pdfjs-editor-alt-text-settings-download-model-button = Hent
-pdfjs-editor-alt-text-settings-downloading-model-button = Henter…
 pdfjs-editor-alt-text-settings-editor-title = Redigering af alternativ tekst
 pdfjs-editor-alt-text-settings-show-dialog-button-label = Vis redigering af alternativ tekst med det samme, når et billede tilføjes
 pdfjs-editor-alt-text-settings-show-dialog-description = Hjælper dig med at sikre, at alle dine billeder har alternativ tekst.
@@ -534,6 +536,7 @@ pdfjs-editor-undo-bar-message-freetext = Tekst fjernet
 pdfjs-editor-undo-bar-message-ink = Tegning fjernet
 pdfjs-editor-undo-bar-message-stamp = Billede fjernet
 pdfjs-editor-undo-bar-message-signature = Signatur fjernet
+pdfjs-editor-undo-bar-message-comment = Kommentar fjernet
 # Variables:
 #   $count (Number) - the number of removed annotations.
 pdfjs-editor-undo-bar-message-multiple =
@@ -632,6 +635,161 @@ pdfjs-editor-edit-comment-dialog-cancel-button = Annuller
 
 pdfjs-editor-add-comment-button =
     .title = Tilføj kommentar
+
+## The view manager is a sidebar displaying different views:
+##  - thumbnails;
+##  - outline;
+##  - attachments;
+##  - layers.
+## The thumbnails view is used to edit the pdf: remove/insert pages, ...
+
+pdfjs-toggle-views-manager-notification-button =
+    .title = Slå sidepanel til eller fra (dokumentet indeholder miniaturer/disposition/vedhæftede filer/lag)
+pdfjs-toggle-views-manager-button1-label = Håndter sider
+pdfjs-views-manager-sidebar =
+    .aria-label = Sidepanel
+pdfjs-views-manager-view-selector-button =
+    .title = Visninger
+pdfjs-views-manager-view-selector-button-label = Visninger
+pdfjs-views-manager-pages-title = Sider
+pdfjs-views-manager-outlines-title1 = Dokument-disposition
+    .title = Dokument-disposition (dobbeltklik for at udvide/sammenfolde alle elementer)
+pdfjs-views-manager-attachments-title = Vedhæftede filer
+pdfjs-views-manager-layers-title1 = Lag
+    .title = Lag (dobbeltklik for at nulstille alle lag til standard-tilstanden)
+pdfjs-views-manager-pages-option-label = Sider
+pdfjs-views-manager-outlines-option-label = Dokument-disposition
+pdfjs-views-manager-attachments-option-label = Vedhæftede filer
+pdfjs-views-manager-layers-option-label = Lag
+pdfjs-views-manager-add-file-button =
+    .title = Tilføj fil
+pdfjs-views-manager-add-file-button-label = Tilføj fil
+# Variables:
+#   $count (Number) - the number of selected pages.
+pdfjs-views-manager-pages-status-action-label =
+    { $count ->
+        [one] { $count } valgt
+       *[other] { $count } valgt
+    }
+pdfjs-views-manager-pages-status-none-action-label = Vælg sider
+pdfjs-views-manager-pages-status-action-button-label = Håndter
+pdfjs-views-manager-pages-status-copy-button-label = Kopier
+pdfjs-views-manager-pages-status-cut-button-label = Klip
+pdfjs-views-manager-pages-status-delete-button-label = Slet
+pdfjs-views-manager-pages-status-export-selected-button-label = Eksporter valgte…
+# Variables:
+#   $count (Number) - the number of selected pages to be cut.
+pdfjs-views-manager-status-undo-cut-label =
+    { $count ->
+        [one] 1 side klippet
+       *[other] { $count } sider klippet
+    }
+# Variables:
+#   $count (Number) - the number of selected pages to be copied.
+pdfjs-views-manager-pages-status-undo-copy-label =
+    { $count ->
+        [one] 1 side kopieret
+       *[other] { $count } sider kopieret
+    }
+# Variables:
+#   $count (Number) - the number of selected pages to be deleted.
+pdfjs-views-manager-pages-status-undo-delete-label =
+    { $count ->
+        [one] 1 side slettet
+       *[other] { $count } sider slettet
+    }
+pdfjs-views-manager-pages-status-waiting-ready-label = Gør din fil klar…
+pdfjs-views-manager-pages-status-waiting-uploading-label = Uploader fil…
+pdfjs-views-manager-status-warning-cut-label = Kunne ikke klippe. Opdater siden, og prøv igen.
+pdfjs-views-manager-status-warning-copy-label = Kunne ikke kopiere. Opdater siden, og prøv igen.
+pdfjs-views-manager-status-warning-delete-label = Kunne ikke slette. Opdater siden, og prøv igen.
+pdfjs-views-manager-status-warning-save-label = Kunne ikke gemme. Opdater siden, og prøv igen.
+pdfjs-views-manager-status-undo-button-label = Fortryd
+pdfjs-views-manager-status-done-button-label = Færdig
+pdfjs-views-manager-status-close-button =
+    .title = Luk
+pdfjs-views-manager-status-close-button-label = Luk
+pdfjs-views-manager-paste-button-label = Indsæt
+pdfjs-views-manager-paste-button-before =
+    .title = Indsæt før første side
+# Variables:
+#   $page (Number) - the page number after which the paste button is.
+pdfjs-views-manager-paste-button-after =
+    .title = Indsæt efter side { $page }
+# Badge used to promote a new feature in the UI, keep it as short as possible.
+# It's spelled uppercase for English, but it can be translated as usual.
+pdfjs-new-badge-content = NY
+pdfjs-views-manager-waiting-for-file = Uploader fil…
+pdfjs-toggle-views-manager-button1 =
+    .title = Håndter sider
+
+## Digital signature properties (signature verification panel)
+
+pdfjs-digital-signature-properties-button =
+    .aria-label = Egenskaber for digitale signaturer
+    .title = Egenskaber for digitale signaturer
+pdfjs-digital-signature-properties-button-label = Egenskaber for digitale signaturer
+
+## Banner shown above the signature list summarising the overall
+## verification state of the document. Each variant is selected by the
+## viewer based on the worst per-signature status; one signature is
+## enough to lower the banner.
+##
+## Variables:
+##   $count (Number) - number of signatures at the worst level.
+
+pdfjs-digital-signature-properties-banner-verified = Dokumentet blev underskrevet med en gyldig digital signatur
+pdfjs-digital-signature-properties-banner-unknown =
+    { $count ->
+        [one] Dokumentet er signeret, men { $count } digital signatur kunne ikke bekræftes
+       *[other] Dokumentet er signeret, men { $count } digitale signaturer kunne ikke bekræftes
+    }
+pdfjs-digital-signature-properties-banner-untrusted =
+    { $count ->
+        [one] Dokument signeret med { $count } certifikat, der ikke er tillid til
+       *[other] Dokument signeret med { $count } certifikater, der ikke er tillid til
+    }
+pdfjs-digital-signature-properties-banner-expired =
+    { $count ->
+        [one] Dokument signeret med { $count } udløbet certifikat
+       *[other] Dokument signeret med { $count } udløbne certifikater
+    }
+pdfjs-digital-signature-properties-banner-invalid =
+    { $count ->
+        [one] Dokumentet har { $count } ugyldig digitale signatur
+       *[other] Dokumentet har { $count } ugyldige digitale signaturer
+    }
+pdfjs-digital-signature-properties-banner-revoked =
+    { $count ->
+        [one] Dokument signeret med { $count } tilbagekaldt certifikat
+       *[other] Dokument signeret med { $count } tilbagekaldte certifikater
+    }
+
+## Per-signature status row. Only three distinct strings are needed:
+## the signature crypto either verified (the cert chain may still be
+## untrusted/expired/revoked, but that's surfaced on the cert row
+## below), or it failed, or its sub-format isn't supported.
+
+pdfjs-digital-signature-properties-status-verified = Status: Signatur bekræftet
+pdfjs-digital-signature-properties-status-invalid = Status: Signatur ugyldig
+pdfjs-digital-signature-properties-status-unknown = Status: Kan ikke bekræftes (ikke understøttet)
+
+## Per-signature certificate row. The variants with an issuer / date in
+## parentheses embed fully-localized context — no English fall-through.
+##
+## Variables:
+##   $issuer (String) - issuer or subject common name from the cert.
+##   $dateObj (Date)  - notAfter date for the expired-with-date form.
+
+pdfjs-digital-signature-properties-certificate-trusted = Certifikat: Der er tillid til ({ $issuer })
+pdfjs-digital-signature-properties-certificate-unknown = Certifikat: Ikke tilgængelig
+pdfjs-digital-signature-properties-certificate-untrusted = Certifikat: Der ikke er tillid til
+pdfjs-digital-signature-properties-certificate-untrusted-unknown-issuer = Certifikat: Ukendt udsteder ({ $issuer })
+pdfjs-digital-signature-properties-certificate-untrusted-self-signed = Certifikat: Underskrevet af indehaveren selv ({ $issuer })
+pdfjs-digital-signature-properties-certificate-untrusted-untrusted-issuer = Certifikat: Udsteder, der ikke er tillid til ({ $issuer })
+pdfjs-digital-signature-properties-certificate-expired = Certifikat: Udløbet
+pdfjs-digital-signature-properties-certificate-expired-with-date = Certifikat: Udløbet ({ DATETIME($dateObj, dateStyle: "medium") })
+pdfjs-digital-signature-properties-certificate-revoked = Certifikat: Tilbagekaldt
 
 ## Main menu for adding/removing signatures
 

@@ -153,6 +153,28 @@ pdfjs-document-properties-linearized = Brzi web pregled:
 pdfjs-document-properties-linearized-yes = Da
 pdfjs-document-properties-linearized-no = Ne
 pdfjs-document-properties-close-button = Zatvori
+pdfjs-digital-signature-properties-view-certificate = Pogledaj certifikat
+# Shown beneath an invalid signature card to explain why verification
+# failed. The text comes from NSS (e.g. "Signature integrity has been
+# compromised", "PKCS#7 signature could not be parsed") and is not
+# itself localized — it is the underlying error message produced by
+# the verification backend.
+# Variables:
+#   $reason (String) - error message describing why the signature
+#                      could not be verified.
+pdfjs-digital-signature-properties-reason = Razlog: { $reason }
+# Variables:
+#   $dateObj (Date) - the signing time from the /Sig dict's /M entry.
+pdfjs-digital-signature-properties-timestamp = Vremenska oznaka: { DATETIME($dateObj, dateStyle: "short", timeStyle: "medium") }
+# Variables:
+#   $count (Number) - number of nested sub-signatures (one per earlier
+#                     incremental revision of the document).
+pdfjs-digital-signature-properties-sub-signatures =
+    { $count ->
+        [one] Podređeni potpis(i) ({ $count })
+        [few] Podređeni potpisi ({ $count })
+       *[other] Podređeni potpisi ({ $count })
+    }
 
 ## Print
 
@@ -166,23 +188,6 @@ pdfjs-printing-not-ready = Upozorenje: PDF nije u potpunosti učitan za ispis.
 
 ## Tooltips and alt text for side panel toolbar buttons
 
-pdfjs-toggle-sidebar-button =
-    .title = Prikaži/sakrij bočnu traku
-pdfjs-toggle-sidebar-notification-button =
-    .title = Prikazivanje i sklanjanje bočne trake (dokument sadrži strukturu/privitke/slojeve)
-pdfjs-toggle-sidebar-button-label = Prikaži/sakrij bočnu traku
-pdfjs-document-outline-button =
-    .title = Prikaži strukturu dokumenta (dvoklik za rasklapanje/sklapanje svih stavki)
-pdfjs-document-outline-button-label = Struktura dokumenta
-pdfjs-attachments-button =
-    .title = Prikaži privitke
-pdfjs-attachments-button-label = Privitci
-pdfjs-layers-button =
-    .title = Prikaži slojeve (dvoklik za vraćanje svih slojeva u standardno stanje)
-pdfjs-layers-button-label = Slojevi
-pdfjs-thumbs-button =
-    .title = Prikaži minijature
-pdfjs-thumbs-button-label = Minijature
 pdfjs-current-outline-item-button =
     .title = Pronađi trenutačni element strukture
 pdfjs-current-outline-item-button-label = Trenutačni element strukture
@@ -195,18 +200,23 @@ pdfjs-additional-layers = Dodatni slojevi
 
 # Variables:
 #   $page (Number) - the page number
-pdfjs-thumb-page-title =
-    .title = Stranica { $page }
-# Variables:
-#   $page (Number) - the page number
 pdfjs-thumb-page-canvas =
     .aria-label = Minijatura stranice { $page }
+# Variables:
+#   $page (Number) - the page number
+pdfjs-thumb-page-checkbox1 =
+    .title = Odaberi stranicu { $page }
+# Variables:
+#   $page (Number) - the page number
+#   $total (Number) - the number of pages
+pdfjs-thumb-page-title1 =
+    .title = Stranica { $page } od { $total }
 
 ## Find panel button title and messages
 
 pdfjs-find-input =
-    .title = Pronađi
     .placeholder = Pronađi u dokumentu …
+    .title = Pronađi
 pdfjs-find-previous-button =
     .title = Pronađi prethodno pojavljivanje ovog izraza
 pdfjs-find-previous-button-label = Prethodno
@@ -303,16 +313,16 @@ pdfjs-editor-highlight-button =
     .title = Istakni
 pdfjs-editor-highlight-button-label = Istakni
 pdfjs-highlight-floating-button1 =
-    .title = Istakni
     .aria-label = Istakni
+    .title = Istakni
 pdfjs-highlight-floating-button-label = Istakni
 pdfjs-comment-floating-button =
-    .title = Komentiraj
     .aria-label = Komentiraj
+    .title = Komentiraj
 pdfjs-comment-floating-button-label = Komentiraj
 pdfjs-editor-comment-button =
-    .title = Komentar
     .aria-label = Komentar
+    .title = Komentar
 pdfjs-editor-comment-button-label = Komentar
 pdfjs-editor-signature-button =
     .title = Dodaj potpis
@@ -386,8 +396,8 @@ pdfjs-editor-comments-sidebar-title =
        *[other] Komentara
     }
 pdfjs-editor-comments-sidebar-close-button =
-    .title = Zatvori bočnu traku
     .aria-label = Zatvori bočnu traku
+    .title = Zatvori bočnu traku
 pdfjs-editor-comments-sidebar-close-button-label = Zatvori bočnu traku
 # Instructional copy to add a comment by selecting text or an annotations.
 pdfjs-editor-comments-sidebar-no-comments1 = Vidiš nešto vrijedno pažnje? Istakni to i ostavi komentar.
@@ -510,13 +520,6 @@ pdfjs-editor-alt-text-settings-dialog-label = Postavke alternativnog teksta slik
 pdfjs-editor-alt-text-settings-automatic-title = Automatski alternativni tekst
 pdfjs-editor-alt-text-settings-create-model-button-label = Stvori alternativni tekst automatski
 pdfjs-editor-alt-text-settings-create-model-description = Predlaže opise koji pomažu osobama koji ne mogu vidjeti sliku ili kada se slika ne učita.
-# Variables:
-#   $totalSize (Number) - the total size (in MB) of the AI model.
-pdfjs-editor-alt-text-settings-download-model-label = Alternativni tekst UI modela ({ $totalSize } MB)
-pdfjs-editor-alt-text-settings-ai-model-description = Radi lokalno na tvom uređaju kako bi tvoji podaci ostali privatni. Potrebno za automatski alternativni tekst.
-pdfjs-editor-alt-text-settings-delete-model-button = Izbriši
-pdfjs-editor-alt-text-settings-download-model-button = Preuzmi
-pdfjs-editor-alt-text-settings-downloading-model-button = Preuzimanje …
 pdfjs-editor-alt-text-settings-editor-title = Uređivač alternativnog teksta
 pdfjs-editor-alt-text-settings-show-dialog-button-label = Prikaži uređivač alternativnog teksta odmah pri dodavanju slike
 pdfjs-editor-alt-text-settings-show-dialog-description = Pomaže osigurati da sve tvoje slike imaju alternativni tekst.
@@ -537,6 +540,7 @@ pdfjs-editor-undo-bar-message-freetext = Tekst uklonjen
 pdfjs-editor-undo-bar-message-ink = Crtež uklonjen
 pdfjs-editor-undo-bar-message-stamp = Slika uklonjena
 pdfjs-editor-undo-bar-message-signature = Potpis uklonjen
+pdfjs-editor-undo-bar-message-comment = Komentar je uklonjen
 # Variables:
 #   $count (Number) - the number of removed annotations.
 pdfjs-editor-undo-bar-message-multiple =
@@ -636,6 +640,172 @@ pdfjs-editor-edit-comment-dialog-cancel-button = Odustani
 
 pdfjs-editor-add-comment-button =
     .title = Dodaj komentar
+
+## The view manager is a sidebar displaying different views:
+##  - thumbnails;
+##  - outline;
+##  - attachments;
+##  - layers.
+## The thumbnails view is used to edit the pdf: remove/insert pages, ...
+
+pdfjs-toggle-views-manager-notification-button =
+    .title = Prikaži/sakrij bočnu traku (dokument sadrži sličice/strukturu/privitke/slojeve)
+pdfjs-toggle-views-manager-button1-label = Upravljaj stranicama
+pdfjs-views-manager-sidebar =
+    .aria-label = Bočna traka
+pdfjs-views-manager-sidebar-resizer =
+    .aria-label = Promjena veličine bočne trake
+pdfjs-views-manager-view-selector-button =
+    .title = Prikazi
+pdfjs-views-manager-view-selector-button-label = Prikazi
+pdfjs-views-manager-pages-title = Stranice
+pdfjs-views-manager-outlines-title1 = Struktura dokumenta
+    .title = Struktura dokumenta (sažmi/proširi sve stavke dvostrukim klikom)
+pdfjs-views-manager-attachments-title = Privici
+pdfjs-views-manager-layers-title1 = Slojevi
+    .title = Slojevi (ponovo postavi sve slojeve na zadano stanje dvostrukim klikom)
+pdfjs-views-manager-pages-option-label = Stranice
+pdfjs-views-manager-outlines-option-label = Struktura dokumenta
+pdfjs-views-manager-attachments-option-label = Privici
+pdfjs-views-manager-layers-option-label = Slojevi
+pdfjs-views-manager-add-file-button =
+    .title = Dodaj datoteku
+pdfjs-views-manager-add-file-button-label = Dodaj datoteku
+# Variables:
+#   $count (Number) - the number of selected pages.
+pdfjs-views-manager-pages-status-action-label =
+    { $count ->
+        [one] { $count } odabrana
+        [few] { $count } odabrane
+       *[other] { $count } odabranih
+    }
+pdfjs-views-manager-pages-status-none-action-label = Odaberi stranice
+pdfjs-views-manager-pages-status-action-button-label = Upravljaj
+pdfjs-views-manager-pages-status-copy-button-label = Kopiraj
+pdfjs-views-manager-pages-status-cut-button-label = Izreži
+pdfjs-views-manager-pages-status-delete-button-label = Izbriši
+pdfjs-views-manager-pages-status-export-selected-button-label = Izvezi odabrano…
+# Variables:
+#   $count (Number) - the number of selected pages to be cut.
+pdfjs-views-manager-status-undo-cut-label =
+    { $count ->
+        [one] { $count } stranica je izrezana
+        [few] { $count } stranice su izrezane
+       *[other] { $count } stranica je izrezano
+    }
+# Variables:
+#   $count (Number) - the number of selected pages to be copied.
+pdfjs-views-manager-pages-status-undo-copy-label =
+    { $count ->
+        [one] { $count } stranica je kopirana
+        [few] { $count } stranice su kopirane
+       *[other] { $count } stranica je kopirano
+    }
+# Variables:
+#   $count (Number) - the number of selected pages to be deleted.
+pdfjs-views-manager-pages-status-undo-delete-label =
+    { $count ->
+        [one] { $count } stranica je izbrisana
+        [few] { $count } stranice su izbrisane
+       *[other] { $count } stranica je izbrisano
+    }
+pdfjs-views-manager-pages-status-waiting-ready-label = Pripremamo tvoju datoteku…
+pdfjs-views-manager-pages-status-waiting-uploading-label = Prijenos datoteke…
+pdfjs-views-manager-status-warning-cut-label = Nije moguće izrezati. Osvježi stranicu i pokušaj ponovo.
+pdfjs-views-manager-status-warning-copy-label = Nije moguće kopirati. Osvježi stranicu i pokušaj ponovo.
+pdfjs-views-manager-status-warning-delete-label = Nije moguće izbrisati. Osvježi stranicu i pokušaj ponovo.
+pdfjs-views-manager-status-warning-save-label = Nije moguće spremiti. Osvježi stranicu i pokušaj ponovo.
+pdfjs-views-manager-status-undo-button-label = Poništi
+pdfjs-views-manager-status-done-button-label = Gotovo
+pdfjs-views-manager-status-close-button =
+    .title = Zatvori
+pdfjs-views-manager-status-close-button-label = Zatvori
+pdfjs-views-manager-paste-button-label = Umetni
+pdfjs-views-manager-paste-button-before =
+    .title = Umetni prije prve stranice
+# Variables:
+#   $page (Number) - the page number after which the paste button is.
+pdfjs-views-manager-paste-button-after =
+    .title = Umetni nakon stranice { $page }
+# Badge used to promote a new feature in the UI, keep it as short as possible.
+# It's spelled uppercase for English, but it can be translated as usual.
+pdfjs-new-badge-content = NOVO
+pdfjs-views-manager-waiting-for-file = Prijenos datoteke…
+pdfjs-toggle-views-manager-button1 =
+    .title = Upravljaj stranicama
+
+## Digital signature properties (signature verification panel)
+
+pdfjs-digital-signature-properties-button =
+    .aria-label = Svojstva digitalnog potpisa
+    .title = Svojstva digitalnog potpisa
+pdfjs-digital-signature-properties-button-label = Svojstva digitalnog potpisa
+
+## Banner shown above the signature list summarising the overall
+## verification state of the document. Each variant is selected by the
+## viewer based on the worst per-signature status; one signature is
+## enough to lower the banner.
+##
+## Variables:
+##   $count (Number) - number of signatures at the worst level.
+
+pdfjs-digital-signature-properties-banner-verified = Dokument je potpisan važećim digitalnim potpisom
+pdfjs-digital-signature-properties-banner-unknown =
+    { $count ->
+        [one] Dokument je potpisan, ali { $count } digitalni potpis nije bilo moguće provjeriti
+        [few] Dokument je potpisan, ali { $count } digitalna potpisa nije bilo moguće provjeriti
+       *[other] Dokument je potpisan, ali { $count } digitalnih potpisa nije bilo moguće provjeriti
+    }
+pdfjs-digital-signature-properties-banner-untrusted =
+    { $count ->
+        [one] Dokument je potpisan s { $count } certifikatom koji nije pouzdan
+        [few] Dokument je potpisan s { $count } certifikata koji nisu pouzdani
+       *[other] Dokument je potpisan s { $count } certifikata koji nisu pouzdani
+    }
+pdfjs-digital-signature-properties-banner-expired =
+    { $count ->
+        [one] Dokument je potpisan s { $count } isteklim certifikatom
+        [few] Dokument je potpisan s { $count } istekla certifikata
+       *[other] Dokument je potpisan s { $count } isteklih certifikata
+    }
+pdfjs-digital-signature-properties-banner-invalid =
+    { $count ->
+        [one] Dokument sadrži { $count } nevažeći digitalni potpis
+        [few] Dokument sadrži { $count } nevažeća digitalna potpisa
+       *[other] Dokument sadrži { $count } nevažećih digitalnih potpisa
+    }
+pdfjs-digital-signature-properties-banner-revoked =
+    { $count ->
+        [one] Dokument je potpisan s { $count } opozvanim certifikatom
+        [few] Dokument je potpisan s { $count } opozvana certifikata
+       *[other] Dokument je potpisan s { $count } opozvanih certifikata
+    }
+
+## Per-signature status row. Only three distinct strings are needed:
+## the signature crypto either verified (the cert chain may still be
+## untrusted/expired/revoked, but that's surfaced on the cert row
+## below), or it failed, or its sub-format isn't supported.
+
+pdfjs-digital-signature-properties-status-verified = Status: potpis je potvrđen
+pdfjs-digital-signature-properties-status-invalid = Status: potpis je nevažeći
+pdfjs-digital-signature-properties-status-unknown = Status: nije moguće potvrditi (nepodržano)
+
+## Per-signature certificate row. The variants with an issuer / date in
+## parentheses embed fully-localized context — no English fall-through.
+##
+## Variables:
+##   $issuer (String) - issuer or subject common name from the cert.
+##   $dateObj (Date)  - notAfter date for the expired-with-date form.
+
+pdfjs-digital-signature-properties-certificate-trusted = Certifikat: pouzdan ({ $issuer })
+pdfjs-digital-signature-properties-certificate-unknown = Certifikat: nedostupan
+pdfjs-digital-signature-properties-certificate-untrusted = Certifikat: nepouzdan
+pdfjs-digital-signature-properties-certificate-untrusted-unknown-issuer = Certifikat: nepoznati izdavač ({ $issuer })
+pdfjs-digital-signature-properties-certificate-untrusted-self-signed = Certifikat: samopotpisano ({ $issuer })
+pdfjs-digital-signature-properties-certificate-untrusted-untrusted-issuer = Certifikat: nepouzdani izdavač ({ $issuer })
+pdfjs-digital-signature-properties-certificate-expired = Certifikat: istekao
+pdfjs-digital-signature-properties-certificate-expired-with-date = Certifikat: istekao ({ DATETIME($dateObj, dateStyle: "medium") })
+pdfjs-digital-signature-properties-certificate-revoked = Certifikat: opozvan
 
 ## Main menu for adding/removing signatures
 
