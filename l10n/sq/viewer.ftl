@@ -144,6 +144,27 @@ pdfjs-document-properties-linearized = Parje e Shpjetë në Web:
 pdfjs-document-properties-linearized-yes = Po
 pdfjs-document-properties-linearized-no = Jo
 pdfjs-document-properties-close-button = Mbylleni
+pdfjs-digital-signature-properties-view-certificate = Shiheni dëshminë
+# Shown beneath an invalid signature card to explain why verification
+# failed. The text comes from NSS (e.g. "Signature integrity has been
+# compromised", "PKCS#7 signature could not be parsed") and is not
+# itself localized — it is the underlying error message produced by
+# the verification backend.
+# Variables:
+#   $reason (String) - error message describing why the signature
+#                      could not be verified.
+pdfjs-digital-signature-properties-reason = Arsye: { $reason }
+# Variables:
+#   $dateObj (Date) - the signing time from the /Sig dict's /M entry.
+pdfjs-digital-signature-properties-timestamp = Vulë kohore: { DATETIME($dateObj, dateStyle: "short", timeStyle: "medium") }
+# Variables:
+#   $count (Number) - number of nested sub-signatures (one per earlier
+#                     incremental revision of the document).
+pdfjs-digital-signature-properties-sub-signatures =
+    { $count ->
+        [one] Nën-nënshkrim ({ $count })
+       *[other] Nën-nënshkrime ({ $count })
+    }
 
 ## Print
 
@@ -157,23 +178,6 @@ pdfjs-printing-not-ready = Kujdes: PDF-ja s’është ngarkuar plotësisht që t
 
 ## Tooltips and alt text for side panel toolbar buttons
 
-pdfjs-toggle-sidebar-button =
-    .title = Shfaqni/Fshihni Anështyllën
-pdfjs-toggle-sidebar-notification-button =
-    .title = Hap/Mbyll Anështylë (dokumenti përmban përvijim/nashkëngjitje/shtresa)
-pdfjs-toggle-sidebar-button-label = Shfaq/Fshih Anështyllën
-pdfjs-document-outline-button =
-    .title = Shfaqni Përvijim Dokumenti (dyklikoni që të shfaqen/fshihen krejt elementët)
-pdfjs-document-outline-button-label = Përvijim Dokumenti
-pdfjs-attachments-button =
-    .title = Shfaqni Bashkëngjitje
-pdfjs-attachments-button-label = Bashkëngjitje
-pdfjs-layers-button =
-    .title = Shfaq Shtresa (dyklikoni që të rikthehen krejt shtresat në gjendjen e tyre parazgjedhje)
-pdfjs-layers-button-label = Shtresa
-pdfjs-thumbs-button =
-    .title = Shfaqni Miniatura
-pdfjs-thumbs-button-label = Miniatura
 pdfjs-current-outline-item-button =
     .title = Gjej Objektin e Tanishëm të Përvijuar
 pdfjs-current-outline-item-button-label = Objekt i Tanishëm i Përvijuar
@@ -186,20 +190,12 @@ pdfjs-additional-layers = Shtresa Shtesë
 
 # Variables:
 #   $page (Number) - the page number
-pdfjs-thumb-page-title =
-    .title = Faqja { $page }
-# Variables:
-#   $page (Number) - the page number
 pdfjs-thumb-page-canvas =
     .aria-label = Miniaturë e Faqes { $page }
 # Variables:
 #   $page (Number) - the page number
 pdfjs-thumb-page-checkbox1 =
     .title = Përzgjidhni faqen { $page }
-# Variables:
-#   $page (Number) - the page number
-pdfjs-thumb-page-checkbox =
-    .aria-label = Përzgjidhni faqen { $page }
 # Variables:
 #   $page (Number) - the page number
 #   $total (Number) - the number of pages
@@ -209,8 +205,8 @@ pdfjs-thumb-page-title1 =
 ## Find panel button title and messages
 
 pdfjs-find-input =
-    .title = Gjej
     .placeholder = Gjeni në dokument…
+    .title = Gjej
 pdfjs-find-previous-button =
     .title = Gjeni hasjen e mëparshme të togfjalëshit
 pdfjs-find-previous-button-label = E mëparshmja
@@ -305,16 +301,16 @@ pdfjs-editor-highlight-button =
     .title = Theksim
 pdfjs-editor-highlight-button-label = Theksoje
 pdfjs-highlight-floating-button1 =
-    .title = Theksim
     .aria-label = Theksim
+    .title = Theksim
 pdfjs-highlight-floating-button-label = Theksim
 pdfjs-comment-floating-button =
-    .title = Komentoni
     .aria-label = Komentoni
+    .title = Komentoni
 pdfjs-comment-floating-button-label = Komentoni
 pdfjs-editor-comment-button =
-    .title = Koment
     .aria-label = Koment
+    .title = Koment
 pdfjs-editor-comment-button-label = Komentoni
 pdfjs-editor-signature-button =
     .title = Shtoni nënshkrim
@@ -328,6 +324,12 @@ pdfjs-editor-highlight-editor =
 # “Drawing” is a noun, the string is used on the editor for drawings.
 pdfjs-editor-ink-editor =
     .aria-label = Përpunues vizatimesh
+# Used when a signature editor is selected/hovered.
+# Variables:
+#   $description (String) - a string describing/labeling the signature.
+pdfjs-editor-signature-editor2 =
+    .aria-description = Përpunues nënshkrimesh: { $description }
+    .aria-label = Përpunues nënshkrimesh
 # Used when a signature editor is selected/hovered.
 # Variables:
 #   $description (String) - a string describing/labeling the signature.
@@ -387,8 +389,8 @@ pdfjs-editor-comments-sidebar-title =
        *[other] Komente
     }
 pdfjs-editor-comments-sidebar-close-button =
-    .title = Mbylleni anështyllën
     .aria-label = Mbylleni anështyllën
+    .title = Mbylleni anështyllën
 pdfjs-editor-comments-sidebar-close-button-label = Mbylleni anështyllën
 # Instructional copy to add a comment by selecting text or an annotations.
 pdfjs-editor-comments-sidebar-no-comments1 = Shihni diçka që ia vlen. Theksojeni dhe lini një koment.
@@ -511,13 +513,6 @@ pdfjs-editor-alt-text-settings-dialog-label = Rregullime teksti alternativ figur
 pdfjs-editor-alt-text-settings-automatic-title = Tekst alternativ i automatizuar
 pdfjs-editor-alt-text-settings-create-model-button-label = Krijo automatikisht tekst alternativ
 pdfjs-editor-alt-text-settings-create-model-description = Sugjeron përshkrime, për të ndihmuar persona që s’munden të shohin figurën, ose për kur figura nuk ngarkohet dot.
-# Variables:
-#   $totalSize (Number) - the total size (in MB) of the AI model.
-pdfjs-editor-alt-text-settings-download-model-label = Model IA teksti alternativ ({ $totalSize } MB)
-pdfjs-editor-alt-text-settings-ai-model-description = Xhiron lokalisht në pajisjen tuaj, pra të dhënat tuaja mbeten private. E domosdoshme për tekst të automatizuar alternativ.
-pdfjs-editor-alt-text-settings-delete-model-button = Fshije
-pdfjs-editor-alt-text-settings-download-model-button = Shkarkoje
-pdfjs-editor-alt-text-settings-downloading-model-button = Po shkarkohet…
 pdfjs-editor-alt-text-settings-editor-title = Përpunues teksti alternativ
 pdfjs-editor-alt-text-settings-show-dialog-button-label = Shfaq menjëherë përpunues teksti alternativ, kur shtohet një figurë
 pdfjs-editor-alt-text-settings-show-dialog-description = Ju ndihmon të siguroheni se krejt figurat tuaja kanë tekst alternativ.
@@ -645,10 +640,9 @@ pdfjs-editor-add-comment-button =
 ##  - layers.
 ## The thumbnails view is used to edit the pdf: remove/insert pages, ...
 
-pdfjs-toggle-views-manager-button =
-    .title = Shfaq/Fshih Anështyllën
+pdfjs-toggle-views-manager-notification-button =
+    .title = Shfaqni/Fshihni Anështyllër (dokumenti përmban miniatura/përvijim/bashkëngjitje/shtresa)
 pdfjs-toggle-views-manager-button1-label = Administroni faqe
-pdfjs-toggle-views-manager-button-label = Shfaq/Fshih Anështyllën
 pdfjs-views-manager-sidebar =
     .aria-label = Anështyllë
 pdfjs-views-manager-sidebar-resizer =
@@ -657,9 +651,9 @@ pdfjs-views-manager-view-selector-button =
     .title = Pamje
 pdfjs-views-manager-view-selector-button-label = Pamje
 pdfjs-views-manager-pages-title = Faqe
-pdfjs-views-manager-outlines-title = Përvijim dokumenti
 pdfjs-views-manager-attachments-title = Bashkëngjitje
-pdfjs-views-manager-layers-title = Shtresa
+pdfjs-views-manager-layers-title1 = Shtresa
+    .title = Shtresa (dyklikoni që të rikthehen krejt shtresat te gjendja parazgjedhje)
 pdfjs-views-manager-pages-option-label = Faqe
 pdfjs-views-manager-outlines-option-label = Përvijim dokumenti
 pdfjs-views-manager-attachments-option-label = Bashkëngjitje
@@ -679,7 +673,14 @@ pdfjs-views-manager-pages-status-action-button-label = Administrojini
 pdfjs-views-manager-pages-status-copy-button-label = Kopjoje
 pdfjs-views-manager-pages-status-cut-button-label = Prije
 pdfjs-views-manager-pages-status-delete-button-label = Fshije
-pdfjs-views-manager-pages-status-save-as-button-label = Ruajeni si…
+pdfjs-views-manager-pages-status-export-selected-button-label = Eksportoni të përzgjedhurit…
+# Variables:
+#   $count (Number) - the number of selected pages to be cut.
+pdfjs-views-manager-status-undo-cut-label =
+    { $count ->
+        [one] Prerje e 1 faqeje
+       *[other] Prerje e { $count } faqesh
+    }
 # Variables:
 #   $count (Number) - the number of selected pages to be copied.
 pdfjs-views-manager-pages-status-undo-copy-label =
@@ -701,12 +702,91 @@ pdfjs-views-manager-status-warning-copy-label = S’u kopjua dot. Rifreskoni faq
 pdfjs-views-manager-status-warning-delete-label = S’u fshi dot. Rifreskoni faqen dhe riprovoni.
 pdfjs-views-manager-status-warning-save-label = S’u ruajt dot. Rifreskoni faqen dhe riprovoni.
 pdfjs-views-manager-status-undo-button-label = Zhbëje
+pdfjs-views-manager-status-done-button-label = U bë
 pdfjs-views-manager-status-close-button =
     .title = Mbylle
 pdfjs-views-manager-status-close-button-label = Mbylle
 pdfjs-views-manager-paste-button-label = Ngjite
+pdfjs-views-manager-paste-button-before =
+    .title = Ngjite para faqes së parë
+# Variables:
+#   $page (Number) - the page number after which the paste button is.
+pdfjs-views-manager-paste-button-after =
+    .title = Ngjite pas faqes { $page }
+# Badge used to promote a new feature in the UI, keep it as short as possible.
+# It's spelled uppercase for English, but it can be translated as usual.
+pdfjs-new-badge-content = E RE
+pdfjs-views-manager-waiting-for-file = Po ngarkohet kartelë…
 pdfjs-toggle-views-manager-button1 =
     .title = Administroni faqe
+
+## Digital signature properties (signature verification panel)
+
+pdfjs-digital-signature-properties-button =
+    .aria-label = Veti nënshkrimi dixhital
+    .title = Veti nënshkrimi dixhital
+pdfjs-digital-signature-properties-button-label = Veti nënshkrimi dixhital
+
+## Banner shown above the signature list summarising the overall
+## verification state of the document. Each variant is selected by the
+## viewer based on the worst per-signature status; one signature is
+## enough to lower the banner.
+##
+## Variables:
+##   $count (Number) - number of signatures at the worst level.
+
+pdfjs-digital-signature-properties-banner-verified = Dokumenti qe nënshkruar me një nënshkrimi dixhital të vlefshëm
+pdfjs-digital-signature-properties-banner-unknown =
+    { $count ->
+        [one] Dokumenti u nënshkrua, por { $count } nënshkrim dixhital s’u verifikuan dot
+       *[other] Dokumenti u nënshkrua, por { $count } nënshkrime dixhitale s’u verifikuan dot
+    }
+pdfjs-digital-signature-properties-banner-untrusted =
+    { $count ->
+        [one] Dokument i nënshkruar me { $count } dëshmi që nuk besohet
+       *[other] Dokument i nënshkruar me { $count } dëshmi që nuk besohen
+    }
+pdfjs-digital-signature-properties-banner-expired =
+    { $count ->
+        [one] Dokument i nënshkruar me { $count } dëshmi të skaduar
+       *[other] Dokument i nënshkruar me { $count } dëshmi të skaduara
+    }
+pdfjs-digital-signature-properties-banner-invalid =
+    { $count ->
+        [one] Dokumenti ka { $count } nënshkrim dixhital të pavlefshëm
+       *[other] Dokumenti ka { $count } nënshkrime dixhitale të pavlefshëm
+    }
+pdfjs-digital-signature-properties-banner-revoked =
+    { $count ->
+        [one] Dokument i nënshkruar me { $count } dëshmi të shfuqizuar
+       *[other] Dokument i nënshkruar me { $count } dëshmi të shfuqizuara
+    }
+
+## Per-signature status row. Only three distinct strings are needed:
+## the signature crypto either verified (the cert chain may still be
+## untrusted/expired/revoked, but that's surfaced on the cert row
+## below), or it failed, or its sub-format isn't supported.
+
+pdfjs-digital-signature-properties-status-verified = Gjendje: Nënshkrim i verifikuar
+pdfjs-digital-signature-properties-status-invalid = Gjendje: Nënshkrim i pavlefshëm
+pdfjs-digital-signature-properties-status-unknown = Gjendje: S’arrihet të verifikohet (i pambuluar)
+
+## Per-signature certificate row. The variants with an issuer / date in
+## parentheses embed fully-localized context — no English fall-through.
+##
+## Variables:
+##   $issuer (String) - issuer or subject common name from the cert.
+##   $dateObj (Date)  - notAfter date for the expired-with-date form.
+
+pdfjs-digital-signature-properties-certificate-trusted = Dëshmi: E besuar ({ $issuer })
+pdfjs-digital-signature-properties-certificate-unknown = Dëshmi: S’ka
+pdfjs-digital-signature-properties-certificate-untrusted = Dëshmi: E pabesuar
+pdfjs-digital-signature-properties-certificate-untrusted-unknown-issuer = Dëshmi: Lëshues i panjohur ({ $issuer })
+pdfjs-digital-signature-properties-certificate-untrusted-self-signed = Dëshmi: E vetënënshkuar ({ $issuer })
+pdfjs-digital-signature-properties-certificate-untrusted-untrusted-issuer = Dëshmi: Lëshues jo i besuar ({ $issuer })
+pdfjs-digital-signature-properties-certificate-expired = Dëshmi: E skaduar
+pdfjs-digital-signature-properties-certificate-expired-with-date = Dëshmi: E skaduar ({ DATETIME($dateObj, dateStyle: "medium") })
+pdfjs-digital-signature-properties-certificate-revoked = Dëshmi: E shfuqizuar
 
 ## Main menu for adding/removing signatures
 
